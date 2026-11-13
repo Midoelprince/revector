@@ -1,0 +1,267 @@
+<div class="hero-band">
+<div class="wrap">
+  <div class="hero" id="convert">
+    <div class="hero-copy">
+      <h1 class="eyebrow hero-eyebrow">Convert <span class="rot" data-words="Photos|Logos|Pixels"><span class="rot-base">Images</span><span class="rot-over" aria-hidden="true"></span></span> to <span class="rot" data-words="SVG|Paths|Shapes"><span class="rot-base">Vectors</span><span class="rot-over" aria-hidden="true"></span></span> Online</h1>
+      <p class="display" data-fit><span class="dl">Every curve,</span><br> <span class="dl">carefully traced.</span></p>
+      <p class="lead">Turn PNG, JPG, GIF and WebP pictures into tidy SVG, PDF, EPS and DXF vectors on your own computer, offline. A very patient robot fits true circles, sharp corners and smooth curves, so the result is ready to print straight away.</p>
+      <div class="hero-cta">
+        <div class="dropzone" data-dropzone tabindex="0" role="button" aria-label="Choose an image to vectorize">
+          <div class="dropzone-main">
+            <span class="dropzone-icon" aria-hidden="true"><svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 18V4.5M8 9.5 13 4.5 18 9.5M6 21.5h14"/></svg></span>
+            <div class="dropzone-text">
+              <p class="dropzone-title">Drop an image to vectorize</p>
+              <p class="dropzone-hint">or paste with <span class="key"><span class="ctl-key">Ctrl</span> + V</span></p>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg" data-pick>Vectorize image</button>
+          </div>
+          <p class="dropzone-status" role="status"></p>
+          <p class="dropzone-formats">PNG · JPG · GIF · BMP · WebP → SVG · PDF · EPS · DXF</p>
+        </div>
+        <label class="visually-hidden"><span>Choose an image file</span><input tabindex="-1" id="file-input" type="file" accept="image/*"></label>
+        <img class="hero-robot" src="/assets/img/robot.svg" alt="" width="136" height="198" aria-hidden="true">
+      </div>
+      <div class="hero-notes">
+        <p>Free interactive preview. Download only when you're happy.</p>
+        <p>Building an app? <a href="/api">See the API</a></p>
+      </div>
+    </div>
+
+    <figure class="showcase" data-inspector aria-label="An example vectorized: pixels left of the divider, vectors right of it, and a loupe tracing the fitted paths over the pixels.">
+      <div class="showcase-head">
+        <span data-inspector-file>example-scene.png · 2400 × 1770</span>
+        <a href="#convert" data-try>Vectorize this example</a>
+      </div>
+      <div class="showcase-body">
+        <div class="stage" data-stage>
+          <div class="stage-layer pixels"><div class="stage-img" data-view></div></div>
+          <div class="stage-layer vectors"><div class="stage-img" data-view></div></div>
+          <span class="seam" aria-hidden="true"></span>
+          <div class="loupe" role="slider" tabindex="0" aria-label="Pixels and vectors divider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="50% pixels"><div class="loupe-view" data-loupe></div></div>
+        </div>
+        <label class="zoom"><span class="visually-hidden">Zoom</span><span aria-hidden="true">+</span><input type="range" min="0" max="100" step="any" value="26" data-zoom><span aria-hidden="true">−</span></label>
+      </div>
+      <div class="compare-labels" aria-hidden="true"><span class="is-pixels">Pixels</span><span class="is-vectors">Vectors</span></div>
+      <ul class="examples" data-examples></ul>
+    </figure>
+  </div>
+</div>
+</div>
+
+<section class="section" aria-labelledby="trace-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="h2" id="trace-title">Not just a trace. Real geometry.</h2>
+      <p class="lead">Ordinary auto-tracers trace blocks of pixels, leaving jagged edges and heaps of anchor points. {{BRAND}} rebuilds the shapes your image was made from.</p>
+    </div>
+    <div class="grid-3 two-md">
+      <div class="card trace-card">
+        <div class="art"><svg viewBox="0 0 120 72" fill="none"><circle cx="60" cy="36" r="26" stroke="#12182b" stroke-width="2.6"/><path d="M60 36h26" stroke="#0b7894" stroke-width="2"/><circle cx="60" cy="36" r="2.6" fill="#fff" stroke="#0b7894" stroke-width="1.6"/></svg></div>
+        <h3 class="h3">Whole shapes</h3>
+        <p>Circles, ellipses, rounded boxes and stars come out as real geometric shapes, alongside lines, arcs and Bezier curves, so outlines stay true and are easy to edit.</p>
+      </div>
+      <div class="card trace-card">
+        <div class="art"><svg viewBox="0 0 120 72" fill="none"><path d="M10 62 60 18l50 44" stroke="#12182b" stroke-width="2.6"/><rect x="56" y="10" width="8" height="8" fill="#fff" stroke="#0b7894" stroke-width="1.6"/><path d="M48 28q12 8 24 0" stroke="#0b7894" stroke-width="1.6" class="anim-dash"/></svg></div>
+        <h3 class="h3">Fewer, better anchor points</h3>
+        <p>Every corner is modeled and every curve is smoothed, so you get tidy paths rather than a cloud of nodes to clean up by hand.</p>
+      </div>
+      <div class="card trace-card">
+        <div class="art"><svg viewBox="0 0 120 72" fill="none"><path d="M10 56 34 18 52 56 70 22 102 56Z M34 18 70 22" stroke="#12182b" stroke-width="2.6" stroke-linejoin="round"/><g fill="#fff" stroke="#0b7894" stroke-width="1.6"><circle cx="10" cy="56" r="3.4"/><circle cx="34" cy="18" r="3.4"/><circle cx="52" cy="56" r="3.4"/><circle cx="70" cy="22" r="3.4"/><circle cx="102" cy="56" r="3.4"/></g></svg></div>
+        <h3 class="h3">Shapes that fit together</h3>
+        <p>Neighboring shapes share their boundaries exactly, so colors meet cleanly with no thin gaps or overlaps.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="how-title">
+  <div class="wrap">
+    <h2 class="h2" id="how-title">How It Works</h2>
+    <ol class="grid-3 steps">
+      <li class="card step">
+        <span class="num">01</span>
+        <div class="art"><svg viewBox="0 0 86 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 70 44 50l40 18-42 22Z"/><path d="M2 70v8l40 20v-8M84 68v8L42 98"/><path d="M14 76l18 9M8 74l4 2"/><path d="M26 44l24-12 18 9-24 12Z" fill="#eaf3f6"/><path d="M26 44v20l18 9V53M68 41v20L44 73"/><path d="M32 48v10M37 50v14M42 52v12M48 48v12M54 45v12M60 42v10" stroke-width="1"/><path d="M40 8a7 7 0 0 1 14 0v14l-4 6h-6l-4-6Z" fill="#fff"/><path d="M47 28v10"/></svg></div>
+        <h3 class="kicker">Drop</h3>
+        <p>Drag and drop, paste, or choose a picture. Everything stays on your computer.</p>
+        <p>Bitmap images, such as <a href="/#convert">JPEGs</a> and <a href="/#convert">PNGs</a> are a grid of colored pixels. We turn them into shapes.</p>
+      </li>
+      <li class="card step">
+        <span class="num">02</span>
+        <div class="art"><svg viewBox="0 0 92 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 66 46 44l44 22-44 22Z"/><path d="M2 66v8l44 22v-8M90 66v8L46 96"/><path d="M28 40l26-13 14 7v24L42 71 28 64Z" fill="#eaf3f6"/><path d="M34 44v18M40 41v24M46 38v26M52 35v26M58 33v24M30 50l34-17M30 58l34-17" stroke-width="1"/><path d="M50 16l12-6M66 4l8 4-4 6-8-4Z"/><path d="M56 12l-6 10"/></svg></div>
+        <h3 class="kicker">Preview for free</h3>
+        <p>We fit shapes, curves and corners to your pixels in seconds. No user input is required to produce the result.</p><p>We combine deep learning networks and classical algorithms that together form the core functionality of {{BRAND}}. Our proprietary computational geometry framework lets us make automated edits and localized optimizations that are simply not possible with conventional vector image representations. Shape outlines often consist of straight or smoothly varying sections separated from one another by discrete corners.</p>
+        <p>Then inspect the whole result for free: zoom in, compare it with the original, and adjust the palette until it looks right.</p>
+      </li>
+      <li class="card step">
+        <span class="num">03</span>
+        <div class="art"><svg viewBox="0 0 97 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 60 44 40l50 24-42 22Z"/><path d="M2 60v8l50 26v-8M94 64v8L52 94"/><path d="M30 46l22-11 22 11v18L52 75 30 64Z" fill="#eaf3f6"/><path d="M36 60l10-10 8 8 6-6 10 10" stroke-width="1.2"/><circle cx="62" cy="48" r="3"/><ellipse cx="36" cy="80" rx="12" ry="6" fill="#fff"/><path d="M31 80h2M35 80h2M39 80h2" stroke-width="1.6"/><path d="M44 4h8v14h6L48 30 38 18h6Z" fill="#fff"/></svg></div>
+        <h3 class="kicker">Download</h3>
+        <p>Download when you're happy, with settings for editing, cutting and engraving.</p>
+        <p>Save as <a href="/#convert">SVG</a>, <a href="/#convert">EPS</a>, <a href="/#convert">DXF</a> and <a href="/#convert">PDF</a> vectors, or a cleaned-up PNG picture.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="uses-title">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="h2" id="uses-title">Made for the way you work</h2>
+      <p class="lead">Whatever you make, the result is ready for the next step.</p>
+    </div>
+    <div class="grid-3 two-md">
+      <div class="card use-card"><p class="label-mono">SVG · EPS · PDF</p><h3 class="h3">Logos &amp; brand archives</h3><p>Rebuild blurry logos, old scans and tiny web graphics as sharp master files in <a href="/#convert">EPS</a>, <a href="/#convert">PDF</a> or SVG.</p></div>
+      <div class="card use-card"><p class="label-mono">SVG · EPS · PDF</p><h3 class="h3">AI-generated art</h3><p>Turn pictures from image generators into editable vector illustrations, icons, stickers and t-shirt designs.</p></div>
+      <div class="card use-card"><p class="label-mono">SVG · DXF</p><h3 class="h3">Cricut, vinyl &amp; screen printing</h3><p>Turn a small, fuzzy JPEG into a <a href="/#convert">multi-color SVG</a> cut file with crisp corners and solid shapes, ready for weeding and pressing.</p></div>
+      <div class="card use-card"><p class="label-mono">DXF · SVG</p><h3 class="h3">Laser, CNC &amp; engraving</h3><p>Export <a href="/#convert">DXF</a> or SVG for your cutting software. The outline setting draws every shape as a thin stroke, and the DXF output keeps to simple lines and curves that your machine software reads without trouble.</p></div>
+      <div class="card use-card"><p class="label-mono">SVG · DXF · PDF</p><h3 class="h3">Sketches &amp; line art</h3><p>Turn scanned pencil sketches, ink drawings and diagrams into clean line art that scales.</p></div>
+      <div class="card use-card"><p class="label-mono">API</p><h3 class="h3">Developers &amp; pipelines</h3><p>Vectorize in bulk through the <a href="/api">REST API</a>, with ready-made SDKs, a command-line tool and an OpenAPI description.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section online" aria-labelledby="online-title">
+  <div class="wrap">
+    <h2 class="h2" id="online-title">Vectorize Images Online</h2>
+    <div class="online-cols">
+      <div>
+        <p class="lead">Turn PNG, JPG, GIF and WebP pictures into clean SVG, PDF, EPS and DXF vectors on your computer. AI-powered tracing for logos, illustrations, print, web, CAD, CNC and all kinds of design workflows.</p>
+        <p>Open any raster image and convert it to scalable vector artwork in seconds. {{BRAND}} turns pixels into editable shapes with smooth curves, fine details and clean colors, for logos, illustrations, diagrams, sketches and design assets. It runs offline on your own computer, so your pictures never leave it.</p>
+      </div>
+      <div>
+        <p>Start from everyday picture formats like <a href="/#convert">PNG</a>, <a href="/#convert">JPG</a>, <a href="/#convert">GIF</a>, <a href="/#convert">BMP</a> and <a href="/#convert">WebP</a>, then save useful vector formats including <a href="/#convert">SVG</a>, <a href="/#convert">EPS</a>, <a href="/#convert">DXF</a> and <a href="/#convert">PDF</a>.</p>
+        <p>Whether you're redrawing a logo, preparing art for print, making pictures for the web or creating <a href="/#convert">DXF</a> paths for CAD and CNC work, {{BRAND}} gives you clean, editable vector files for professional use.</p>
+        <p>Keep resolution independence and small file sizes, with clear, crisp results on every screen size and in print.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="features-title">
+  <div class="wrap">
+    <h2 class="h2" id="features-title">Full Featured</h2>
+    <ul class="pegboard" data-pegboard>
+{{FEATURES}}
+    </ul>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="faq-title">
+  <div class="wrap">
+    <h2 class="h2" id="faq-title">FAQ</h2>
+    <div class="faq faq-home">
+      <details class="faq-item"><summary><h3>Is {{BRAND}} free?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Opening, vectorizing, previewing and saving are free. Everything runs on your own computer, with no account and no uploads.</p></div></details>
+      <details class="faq-item"><summary><h3>Can I make cut files for laser cutters, Cricut and CNC?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Yes. Download DXF or SVG, and switch on outlines to get thin strokes instead of filled shapes.</p></div></details>
+      <details class="faq-item"><summary><h3>How is this different from auto-trace in design software?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Auto-trace tools often follow pixel edges closely and leave lots of points. We group colors first, then smooth and simplify each outline, keeping corners sharp and curves round.</p></div></details>
+      <details class="faq-item"><summary><h3>What makes {{BRAND}} stand out?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Shapes are stacked so neighboring colors never leave gaps, you can tune the palette and edit shapes before downloading, and nothing leaves your computer. The algorithm fits circular arcs and other common classes of shapes for clarity at any size.</p></div></details>
+      <details class="faq-item"><summary><h3>What file formats can I upload and export?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Upload PNG, JPG, GIF, BMP or WebP. Download SVG, EPS, DXF, PDF or PNG.</p></div></details>
+      <details class="faq-item"><summary><h3>What is the maximum image size?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Large pictures are scaled down to 4096 pixels on the longest side before tracing. Since we have a maximum allowable resolution, crop first to keep the most details where you need them.</p></div></details>
+      <details class="faq-item"><summary><h3>Does it work with transparent images?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Yes. Transparent areas automatically stay transparent in the vector result, as long as they have no color behind them.</p></div></details>
+      <details class="faq-item"><summary><h3>What are vector images useful for?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Vectors scale to any size without blur, so they suit logos, signs, print, cutting machines, embroidery and web graphics.</p></div></details>
+      <details class="faq-item"><summary><h3>Will it work on my images?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>It works best on logos, flat illustrations and drawings. Photos work too, but come out as posterised artwork.</p></div></details>
+      <details class="faq-item"><summary><h3>Does this work on AI-generated images?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Yes. Images from AI-powered generators often have flat, illustrated styles, which give especially clean results.</p></div></details>
+      <details class="faq-item"><summary><h3>Will the results work with my software?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>The files are standard SVG, PDF, EPS and DXF, which open in common design, office and cutting programs.</p></div></details>
+      <details class="faq-item"><summary><h3>Is there a difference between vectorizing and embedding?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Yes. Embedding only wraps the pixels inside a vector file. Vectorizing redraws the picture as real shapes you can edit and scale.</p></div></details>
+      <details class="faq-item"><summary><h3>Do you make any claims on the input images or vectorized results?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>No. Your pictures and results stay yours.</p></div></details>
+      <details class="faq-item"><summary><h3>What are your data retention policies?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Nothing is uploaded. Your picture is processed on your computer and is never sent anywhere.</p></div></details>
+      <details class="faq-item"><summary><h3>Can I use your output for machine learning training?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>The results are yours to use as you like, as long as you have the rights to the original picture.</p></div></details>
+      <details class="faq-item"><summary><h3>How much does it cost?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>The desktop converter is free.</p></div></details>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="cta-title">
+  <div class="wrap">
+    <div class="cta-card">
+      <h2 class="h2" id="cta-title">Ready to vectorize your first image?</h2>
+      <p>Free preview. Nothing leaves your computer.</p>
+      <button type="button" class="btn btn-primary btn-lg" data-pick>Vectorize image</button>
+    </div>
+  </div>
+</section>
+
+<div class="app" id="app" role="dialog" aria-modal="true" aria-label="Vectorize image" hidden>
+  <div class="app-bar">
+    <a class="brand" href="/">{{LOGO}}<span>{{BRAND}}</span></a>
+    <span class="app-file" data-app-file></span>
+    <button type="button" class="btn btn-primary" data-pick data-i18n style="padding:7px 14px;font-size:14px">New image</button>
+    <button type="button" class="app-close" data-app-close aria-label="Close"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 3l10 10M13 3 3 13" stroke="#12182b" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="app-body">
+    <div class="app-view">
+      <div class="app-modes" role="group" aria-label="View">
+        <button type="button" data-mode="split" aria-pressed="true" data-i18n>Side by side</button>
+        <button type="button" data-mode="vectors" aria-pressed="false" data-i18n>Vectors</button>
+        <button type="button" data-mode="pixels" aria-pressed="false" data-i18n>Pixels</button>
+        <button type="button" data-mode="outline" aria-pressed="false" data-i18n>Outlines</button>
+      </div>
+      <div class="app-canvas mode-split" data-app-canvas>
+        <div class="pane pix"><div class="layer" data-app-layer="pix"></div></div>
+        <div class="pane vec"><div class="layer" data-app-layer="vec"></div></div>
+        <div class="split-handle"><span data-split></span></div>
+        <div class="crop-box" data-crop-box></div>
+        <div class="app-zoom"><button type="button" data-zoom-in aria-label="Zoom in">+</button><button type="button" data-zoom-out aria-label="Zoom out">−</button><button type="button" data-zoom-fit aria-label="Fit" style="width:auto;padding:0 10px;font-size:13px" data-i18n>Fit</button></div>
+        <div class="app-progress" data-progress><div class="box"><strong data-progress-text>Tracing shapes…</strong><div class="bar"><i data-progress-bar></i></div></div></div>
+      </div>
+    </div>
+    <aside class="app-side" aria-label="Settings">
+      <h2 class="visually-hidden">Refine result</h2>
+      <h3 data-i18n>Palette</h3>
+      <div class="row"><label for="opt-colors" data-i18n>Colors</label><select id="opt-colors" data-opt="colors"><option value="0">Auto</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>24</option></select></div>
+      <div class="swatches" data-swatches style="margin-top:12px"></div>
+      <p class="hint">Click a color to change it or make it transparent. Drag one color onto another to merge them into one shape.</p>
+      <div class="merge-row">
+        <button type="button" class="btn btn-outline" data-merge-toggle aria-pressed="false" data-i18n>Merge colors</button>
+        <span class="merge-bar" data-merge-bar hidden><button type="button" class="btn btn-primary" data-merge-apply disabled>Pick 2 or more colors</button></span>
+      </div>
+      <h3 data-i18n>Layering</h3>
+      <div class="row"><label for="opt-layering" data-i18n>Shapes</label><select id="opt-layering" data-opt="layering"><option value="cutouts" selected>Cutouts (shared edges)</option><option value="stacked">Stacked</option></select></div>
+      <label class="check"><input type="checkbox" data-opt="gapFill" checked> Gap filler (hides hairline seams)</label>
+      <h3 data-i18n>Shapes</h3>
+      <div class="row"><label for="opt-detail" data-i18n>Detail</label><span class="stats" data-detail-val>Medium</span></div>
+      <input id="opt-detail" type="range" min="0" max="4" step="1" value="2" data-opt="detail">
+      <h3 data-i18n>Corners</h3>
+      <div class="row"><label for="opt-corners" data-i18n>Sharpness</label><span class="stats" data-corner-val>Balanced</span></div>
+      <input id="opt-corners" type="range" min="0" max="4" step="1" value="2" data-opt="corners">
+      <h3 data-i18n>Smoothness</h3>
+      <label class="check"><input type="checkbox" data-opt="iconLogoMode" checked> <span data-i18n>Icon/Logo Mode (Smooth)</span></label>
+      <h3 data-i18n>Symmetry</h3>
+      <label class="check"><input type="checkbox" data-opt="symmetry"> Make left and right halves match</label>
+      <h3 data-i18n>Edit</h3>
+      <label class="check"><input type="checkbox" data-opt="removeBg"> <span data-i18n>Remove background</span></label>
+      <label class="check"><input type="checkbox" data-opt="edit"> <span data-i18n>Click shapes to remove them</span></label>
+      <div class="row" style="margin-top:12px"><button type="button" class="btn btn-outline" data-crop data-i18n style="font-size:14px;padding:6px 12px">Crop</button><button type="button" class="btn btn-outline" data-reset data-i18n style="font-size:14px;padding:6px 12px">Reset edits</button></div>
+      <p class="stats" data-stats></p>
+      <h3 data-i18n>Download</h3>
+      <select class="dl-format" data-dl-format aria-label="File format">
+        <option value="eps" selected>EPS – Illustrator</option>
+        <option value="svg">SVG</option>
+        <option value="pdf">PDF</option>
+        <option value="dxf">DXF</option>
+        <option value="png">PNG</option>
+      </select>
+      <div class="dl-grid">
+        <button type="button" class="btn btn-primary wide" data-dl="main" data-i18n>Download</button>
+        <button type="button" class="btn btn-outline" data-dl="eps">EPS</button>
+        <button type="button" class="btn btn-outline" data-dl="svg">SVG</button>
+        <button type="button" class="btn btn-outline" data-dl="pdf">PDF</button>
+        <button type="button" class="btn btn-outline" data-dl="dxf">DXF</button>
+        <button type="button" class="btn btn-outline" data-dl="png">PNG</button>
+      </div>
+    </aside>
+  </div>
+  <div class="swatch-pop" data-swatch-pop role="dialog" aria-label="Edit color" hidden>
+    <div class="pop-head"><strong data-pop-title>Color</strong><button type="button" class="pop-x" data-pop-close aria-label="Close">×</button></div>
+    <div class="pop-members" data-pop-members></div>
+    <div class="pop-sv" data-pop-sv role="slider" tabindex="0" aria-label="Saturation and brightness" aria-valuetext=""><span class="pop-knob" data-pop-knob></span></div>
+    <input type="range" class="pop-hue" data-pop-hue min="0" max="360" step="1" value="0" aria-label="Hue">
+    <div class="pop-row"><span class="pop-preview" data-pop-preview aria-hidden="true"></span><input type="text" class="pop-hex" data-pop-hex maxlength="7" spellcheck="false" aria-label="Hex color"><button type="button" class="pop-reset" data-pop-reset title="Back to the traced color">Reset</button></div>
+    <button type="button" class="pop-transparent" data-pop-transparent aria-pressed="false"><span class="checker" aria-hidden="true"></span>Transparent (cut out)</button>
+    <button type="button" class="btn btn-outline pop-unmerge" data-pop-unmerge hidden>Unmerge colors</button>
+  </div>
+  <div class="app-dialog" data-dialog="network" hidden><div class="box"><h3>Network Error</h3><p>The tracing helper couldn't be loaded, so tracing continues on this page instead. It may be a little slower.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
+  <div class="app-dialog" data-dialog="fatal" hidden><div class="box"><h3>Fatal Error :-(</h3><p>Something went wrong while tracing this picture. Try a different picture or reload the page.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
+  <div class="app-dialog" data-dialog="error" hidden><div class="box"><h3>Error</h3><p data-error-text>Sorry, that picture couldn't be traced.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
+  <div class="app-dialog" data-dialog="feedback" hidden><div class="box"><h3>Please help us improve!</h3><p>How did this result turn out?</p><div class="feedback-row"><button type="button" class="btn btn-outline" data-feedback="good">Great</button><button type="button" class="btn btn-outline" data-feedback="ok">Okay</button><button type="button" class="btn btn-outline" data-feedback="bad">Not good</button></div><button type="button" class="show-more-btn" data-dialog-close>Not now</button></div></div>
+  <div class="app-dialog" data-dialog="thanks" hidden><div class="box"><h3>Thank you - please share the love!</h3><p>Glad it helped. Tell a friend who works with pictures.</p><button type="button" class="btn btn-primary" data-dialog-close>Close</button></div></div>
+</div>

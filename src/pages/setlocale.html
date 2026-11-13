@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bad Request</title>
+<link rel="stylesheet" href="/assets/css/site.css">
+<script>
+  (function () {
+    var m = /[?&]locale=([a-zA-Z-]+)/.exec(location.search);
+    if (m) {
+      try { localStorage.setItem("revector-locale", m[1].toLowerCase()); } catch (e) {}
+      var back = document.referrer && document.referrer.indexOf(location.origin) === 0 ? document.referrer : "/";
+      location.replace(back);
+    }
+  })();
+</script>
+</head>
+<body class="bad">
+<h1>Bad Request</h1>
+<p>For request 'GET /setLocale' [Missing parameter: locale]</p>
+</body>
+</html>

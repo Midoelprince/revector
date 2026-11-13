@@ -1,0 +1,83 @@
+<div class="wrap">
+  <div class="api-hero">
+    <h1 class="h1">{{BRAND}} Developers</h1>
+    <div class="api-intro">
+      <p>Build automated image vectorization into applications, scripts and production pipelines. SDK packages are available for TypeScript and JavaScript, Java, C# and .NET, Go, PHP and Ruby. The Python SDK is prepared and will be published on PyPI. Start with the official SDKs for normal application code, use the command-line tool for batch jobs and shell scripts, or call the HTTP API directly when you want complete control.</p>
+      <p>All developer tools use the same {{BRAND}} API: authenticated raster-to-vector conversion for PNG, JPG, WebP, GIF and BMP pictures, with SVG, PDF, EPS, DXF and PNG output. Common tasks are easy to configure, each call does one focused job, and you have no extra dependency to install: test mode is free for exploration, and only production calls use credit.</p>
+      <div class="api-buttons">
+        <a class="btn btn-primary" href="#sdks">Start with SDKs</a>
+        <a class="btn btn-ghost" href="#cli">Use the CLI</a>
+        <a class="btn btn-ghost" href="#direct">Read API Docs</a>
+      </div>
+    </div>
+    <aside class="dev-options">
+      <p class="dev-title">Developer options</p>
+      <ul>
+        <li><strong>SDKs</strong> for app code in popular languages</li>
+        <li><strong>CLI</strong> for terminals, scripts and batch jobs</li>
+        <li><strong>HTTP API</strong> for custom integrations</li>
+        <li><strong>OpenAPI</strong> for generated clients and API tools</li>
+      </ul>
+    </aside>
+  </div>
+
+  <section class="api-section" aria-labelledby="path-title">
+    <h2 class="h2 center" id="path-title">Choose Your Integration Path</h2>
+    <p class="center" style="margin-top:28px">Pick the tool that matches how you want to automate image vectorization.</p>
+    <div class="cols-3" style="margin-top:17px">
+      <div class="path-col"><h3>1. SDKs</h3><p>Best for applications and services. Use the official packages with typed request objects, authentication helpers and binary result handling.</p><a href="#sdks">View SDK packages</a></div>
+      <div class="path-col"><h3>2. Command Line</h3><p>Best for local automation, batch conversion, CI jobs and shell scripts. Install one standalone tool and call it from the terminal.</p><a href="#cli">View CLI options</a></div>
+      <div class="path-col"><h3>3. Direct API</h3><p>Best when you want full control over HTTP requests, your own transport, or a language without an official SDK.</p><a href="#direct">Open API documentation</a></div>
+    </div>
+  </section>
+
+  <section class="api-section" id="sdks" aria-labelledby="sdk-title">
+    <h2 class="h2 center" id="sdk-title">Start With SDKs</h2>
+    <ol class="grid-3 steps api-steps">
+      <li class="card step"><span class="num">01</span><div class="art"><svg viewBox="0 0 86 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 70 44 50l40 18-42 22Z"/><path d="M2 70v8l40 20v-8M84 68v8L42 98"/><path d="M26 44l24-12 18 9-24 12Z" fill="#eaf3f6"/><path d="M26 44v20l18 9V53M68 41v20L44 73"/><path d="M40 8a7 7 0 0 1 14 0v14l-4 6h-6l-4-6Z" fill="#fff"/></svg></div><h3 class="kicker">Install</h3><p>Add the {{BRAND}} package with your usual package manager. SDKs are available for TypeScript and JavaScript, Java, C# and .NET, Go, PHP and Ruby, with a Python SDK ready and pending approval.</p></li>
+      <li class="card step"><span class="num">02</span><div class="art"><svg viewBox="0 0 92 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 66 46 44l44 22-44 22Z"/><path d="M2 66v8l44 22v-8M90 66v8L46 96"/><path d="M28 40l26-13 14 7v24L42 71 28 64Z" fill="#eaf3f6"/><path d="M50 16l12-6M66 4l8 4-4 6-8-4Z"/></svg></div><h3 class="kicker">Call</h3><p>Send a picture file, a picture link, base64 data or a saved picture token, along with your output settings.</p></li>
+      <li class="card step"><span class="num">03</span><div class="art"><svg viewBox="0 0 97 96" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 60 44 40l50 24-42 22Z"/><path d="M2 60v8l50 26v-8M94 64v8L52 94"/><path d="M30 46l22-11 22 11v18L52 75 30 64Z" fill="#eaf3f6"/><ellipse cx="36" cy="80" rx="12" ry="6" fill="#fff"/><path d="M44 4h8v14h6L48 30 38 18h6Z" fill="#fff"/></svg></div><h3 class="kicker">Download</h3><p>Get SVG, PDF, EPS, DXF or PNG back, or keep a picture token so you can fetch additional formats later.</p></li>
+    </ol>
+    <p class="api-note">The SDKs are the best place to start for most projects, because they keep your code about your workflow rather than request plumbing.</p>
+    <div class="center-btn"><a class="btn btn-dark" href="#direct">View SDK Documentation</a></div>
+  </section>
+
+  <section class="api-section" id="cli" aria-labelledby="cli-title">
+    <h2 class="h2 center" id="cli-title">Use the Command Line</h2>
+    <div class="two-col" style="margin-top:28px">
+      <div class="prose"><h3 class="h3">For Scripts and Batch Jobs</h3><p style="margin-top:16px">The {{BRAND}} CLI is a standalone command-line tool for Windows, macOS and Linux. It suits shell scripts, local folders of artwork, CI jobs, QA checks and one-off terminal workflows.</p><p>Use it when you want automation without adding an SDK to an app project.</p></div>
+      <div class="prose"><h3 class="h3">For Portable Automation</h3><p style="margin-top:16px">The CLI wraps the same API and output options as the SDKs. It can vectorize pictures, write output files and fit neatly into existing terminal tools.</p><p class="api-links"><a href="#direct">Read the CLI docs</a> or <a href="#direct">download CLI releases</a>.</p></div>
+    </div>
+  </section>
+
+  <section class="api-section" id="direct" aria-labelledby="direct-title">
+    <h2 class="h2 center" id="direct-title">Call the API Directly</h2>
+    <div class="two-col" style="margin-top:28px">
+      <div class="prose"><h3 class="h3">HTTP Endpoints</h3><p style="margin-top:16px">Use the HTTP API directly when you need custom request handling, a custom client, or a language that does not yet have an official SDK. Authenticate with HTTP Basic auth using your API Id and API Secret.</p>
+        <ul class="code-list"><li><code>POST /api/v1/vectorize</code></li><li><code>POST /api/v1/download</code></li><li><code>POST /api/v1/delete</code></li><li><code>GET /api/v1/account</code></li></ul>
+        <p class="api-links"><a href="#direct">Read the quickstart</a></p></div>
+      <div class="prose"><h3 class="h3">OpenAPI and Tools</h3><p style="margin-top:16px">Download the OpenAPI 3.0 description for generated clients, API explorers, schema checks and internal integration docs.</p><p>Use the code-generation variant when your generator prefers flatter schemas, or the Swagger variant for a Swagger-UI-friendly document, not a hand-written one, so your tools take care of inspection naturally instead of you converting images by hand.</p><p class="api-links"><a href="#direct">View OpenAPI options</a> or <a href="#direct">download openapi.json</a>.</p><p>The specification is the recommended starting point for a new integration. You receive the result in the format you ask for; results are retained for one hour so you can download them again, and we don't retain your input images past that point.</p></div>
+    </div>
+  </section>
+
+  <section class="api-section" aria-labelledby="ref-title">
+    <h2 class="h2 center" id="ref-title">Developer References</h2>
+    <div class="cols-3" style="margin-top:28px">
+      <div class="path-col"><h3>Output Options</h3><p>Set up SVG, DXF, PDF, EPS and PNG output, including grouping, curves, shape stacking, compatibility, sizing and gap filling behavior.</p><a href="#direct">Review output options</a></div>
+      <div class="path-col"><h3>Pricing and Test Mode</h3><p>Test integrations for free, see how usage-based preview and production credits work, and choose an API plan when you're ready to go live.</p><a href="/pricing">Review API pricing</a></div>
+      <div class="path-col"><h3>Errors and Limits</h3><p>Handle HTTP status codes, error messages, response headers, timeouts and rate limiting in production integrations.</p><a href="#direct">Review API errors</a></div>
+    </div>
+  </section>
+
+  <section class="api-section" aria-labelledby="dfaq-title">
+    <h2 class="h2 center" id="dfaq-title">Developer FAQ</h2>
+    <div class="faq" style="margin-top:30px">
+      <details class="faq-item"><summary><h3>Where should I start?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Start with an SDK for your language. Move to the CLI or direct HTTP calls only if they suit your setup better.</p></div></details>
+      <details class="faq-item"><summary><h3>Can I test it first?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>Yes. Test mode lets you build and check your integration for free, with watermarked results.</p></div></details>
+      <details class="faq-item"><summary><h3>Which inputs and outputs are supported?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>PNG, JPG, WebP, GIF and BMP in; SVG, PDF, EPS, DXF and PNG out.</p></div></details>
+      <details class="faq-item"><summary><h3>Do SDKs, CLI, and direct API calls produce different results?</h3><span class="plus" aria-hidden="true"></span></summary><div class="answer"><p>No. They all use the same API and the same settings, so the results match.</p></div></details>
+    </div>
+    <nav class="subnav" aria-label="Developer pages"><a href="/api" aria-current="page">Developer Overview</a><a href="#direct">Documentation</a><a href="#direct">Output Options</a><a href="#direct">Error Responses</a></nav>
+  </section>
+</div>
+<div style="height:85px"></div>
