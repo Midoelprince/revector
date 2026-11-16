@@ -63,7 +63,8 @@
       {
         "provider": "github",
         "owner": "Midoelprince",
-        "repo": "revector"
+        "repo": "revector",
+        "releaseType": "release"
       }
     ]
   }
