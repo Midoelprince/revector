@@ -1,11 +1,70 @@
 /* ---------- Fonts (bundled, open licence) ---------- */
 select[data-dl-format]{width:100%;padding:8px;margin-bottom:8px;border:1px solid #ccc;border-radius:4px;font:inherit;}
+/* IBM Plex Sans Arabic (SIL Open Font License 1.1, see /assets/fonts/LICENSE-IBM-Plex-Sans-Arabic.txt)
+   covers both Arabic and Latin, so both languages share one typeface. */
 @font-face {
-  font-family: "Schibsted Grotesk";
-  src: url("/assets/fonts/schibsted-grotesk.woff2") format("woff2");
-  font-weight: 400 900;
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-arabic-400.woff2") format("woff2");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC,U+102E0-102FB,U+10E60-10E7E,U+10EC2-10EC4,U+10EFC-10EFF,U+1EE00-1EE03,U+1EE05-1EE1F,U+1EE21-1EE22,U+1EE24,U+1EE27,U+1EE29-1EE32,U+1EE34-1EE37,U+1EE39,U+1EE3B,U+1EE42,U+1EE47,U+1EE49,U+1EE4B,U+1EE4D-1EE4F,U+1EE51-1EE52,U+1EE54,U+1EE57,U+1EE59,U+1EE5B,U+1EE5D,U+1EE5F,U+1EE61-1EE62,U+1EE64,U+1EE67-1EE6A,U+1EE6C-1EE72,U+1EE74-1EE77,U+1EE79-1EE7C,U+1EE7E,U+1EE80-1EE89,U+1EE8B-1EE9B,U+1EEA1-1EEA3,U+1EEA5-1EEA9,U+1EEAB-1EEBB,U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-arabic-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC,U+102E0-102FB,U+10E60-10E7E,U+10EC2-10EC4,U+10EFC-10EFF,U+1EE00-1EE03,U+1EE05-1EE1F,U+1EE21-1EE22,U+1EE24,U+1EE27,U+1EE29-1EE32,U+1EE34-1EE37,U+1EE39,U+1EE3B,U+1EE42,U+1EE47,U+1EE49,U+1EE4B,U+1EE4D-1EE4F,U+1EE51-1EE52,U+1EE54,U+1EE57,U+1EE59,U+1EE5B,U+1EE5D,U+1EE5F,U+1EE61-1EE62,U+1EE64,U+1EE67-1EE6A,U+1EE6C-1EE72,U+1EE74-1EE77,U+1EE79-1EE7C,U+1EE7E,U+1EE80-1EE89,U+1EE8B-1EE9B,U+1EEA1-1EEA3,U+1EEA5-1EEA9,U+1EEAB-1EEBB,U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-arabic-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC,U+102E0-102FB,U+10E60-10E7E,U+10EC2-10EC4,U+10EFC-10EFF,U+1EE00-1EE03,U+1EE05-1EE1F,U+1EE21-1EE22,U+1EE24,U+1EE27,U+1EE29-1EE32,U+1EE34-1EE37,U+1EE39,U+1EE3B,U+1EE42,U+1EE47,U+1EE49,U+1EE4B,U+1EE4D-1EE4F,U+1EE51-1EE52,U+1EE54,U+1EE57,U+1EE59,U+1EE5B,U+1EE5D,U+1EE5F,U+1EE61-1EE62,U+1EE64,U+1EE67-1EE6A,U+1EE6C-1EE72,U+1EE74-1EE77,U+1EE79-1EE7C,U+1EE7E,U+1EE80-1EE89,U+1EE8B-1EE9B,U+1EEA1-1EEA3,U+1EEA5-1EEA9,U+1EEAB-1EEBB,U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-arabic-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC,U+102E0-102FB,U+10E60-10E7E,U+10EC2-10EC4,U+10EFC-10EFF,U+1EE00-1EE03,U+1EE05-1EE1F,U+1EE21-1EE22,U+1EE24,U+1EE27,U+1EE29-1EE32,U+1EE34-1EE37,U+1EE39,U+1EE3B,U+1EE42,U+1EE47,U+1EE49,U+1EE4B,U+1EE4D-1EE4F,U+1EE51-1EE52,U+1EE54,U+1EE57,U+1EE59,U+1EE5B,U+1EE5D,U+1EE5F,U+1EE61-1EE62,U+1EE64,U+1EE67-1EE6A,U+1EE6C-1EE72,U+1EE74-1EE77,U+1EE79-1EE7C,U+1EE7E,U+1EE80-1EE89,U+1EE8B-1EE9B,U+1EEA1-1EEA3,U+1EEA5-1EEA9,U+1EEAB-1EEBB,U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-latin-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-latin-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("/assets/fonts/plex-sans-arabic-latin-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
 }
 @font-face {
   font-family: "JetBrains Mono";
@@ -47,8 +106,8 @@ select[data-dl-format]{width:100%;padding:8px;margin-bottom:8px;border:1px solid
   --grid-line: rgba(18, 24, 43, .055);
   --grid-size: 24px;
 
-  --font-ui: "Schibsted Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", system-ui, ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-ui: "IBM Plex Sans Arabic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Sans Arabic", system-ui, ui-monospace, SFMono-Regular, Consolas, monospace;
 
   --type-body: 1rem;
   --type-body-lg: clamp(1.0625rem, 1.01rem + .19vw, 1.1875rem);
@@ -604,7 +663,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pop-unmerge[hidden] { display: none; }
 .app-side .hint { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
 .lang-ar { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
-[dir="rtl"] body { font-family: 'Tajawal', 'Cairo', 'Helvetica Neue Arabic', var(--font-sans, sans-serif); }
+[dir="rtl"] body { font-family: var(--font-ui); }
 [dir="rtl"] .app-side { border-left: 0; border-right: 1px solid var(--border); }
 [dir="rtl"] .app-side h3 { letter-spacing: 0; }
 [dir="rtl"] input[type="range"] { direction: ltr; }
@@ -644,7 +703,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 /* Arabic, right-to-left layout */
-html[lang="ar"] body{font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic","Schibsted Grotesk",sans-serif}
+html[lang="ar"] body{font-family:var(--font-ui)}
 [dir="rtl"] body{text-align:right}
 [dir="rtl"] .lang,[dir="rtl"] .nav-menu,[dir="rtl"] .dropdown{left:0;right:auto}
 [dir="rtl"] ul,[dir="rtl"] ol{padding-right:1.4em;padding-left:0}

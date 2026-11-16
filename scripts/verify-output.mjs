@@ -16,7 +16,15 @@ const required = [
   "assets/js/worker.js",
   "assets/js/examples.js",
   "assets/js/app.js",
-  "assets/fonts/schibsted-grotesk.woff2",
+  "assets/fonts/plex-sans-arabic-arabic-400.woff2",
+  "assets/fonts/plex-sans-arabic-arabic-500.woff2",
+  "assets/fonts/plex-sans-arabic-arabic-600.woff2",
+  "assets/fonts/plex-sans-arabic-arabic-700.woff2",
+  "assets/fonts/plex-sans-arabic-latin-400.woff2",
+  "assets/fonts/plex-sans-arabic-latin-500.woff2",
+  "assets/fonts/plex-sans-arabic-latin-600.woff2",
+  "assets/fonts/plex-sans-arabic-latin-700.woff2",
+  "assets/fonts/LICENSE-IBM-Plex-Sans-Arabic.txt",
   "assets/fonts/jetbrains-mono.woff2"
 ];
 

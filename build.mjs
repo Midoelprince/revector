@@ -133,7 +133,8 @@ function layout({ title, description, body, active, scripts = [] }) {
 <meta name="description" content="${description}">
 <meta name="theme-color" content="#f6f7f4">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/assets/fonts/schibsted-grotesk.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/plex-sans-arabic-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/plex-sans-arabic-arabic-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/jetbrains-mono.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <script src="/assets/js/i18n.js"></script>
@@ -205,8 +206,18 @@ copyDir(path.join(src, "js"), path.join(dist, "assets", "js"));
 copyDir(path.join(src, "img"), path.join(dist, "assets", "img"));
 fs.mkdirSync(path.join(dist, "assets", "fonts"), { recursive: true });
 for (const [from, to] of [
-  ["node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2", "assets/fonts/schibsted-grotesk.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff2", "assets/fonts/plex-sans-arabic-arabic-400.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-500-normal.woff2", "assets/fonts/plex-sans-arabic-arabic-500.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff2", "assets/fonts/plex-sans-arabic-arabic-600.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-700-normal.woff2", "assets/fonts/plex-sans-arabic-arabic-700.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff2", "assets/fonts/plex-sans-arabic-latin-400.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-500-normal.woff2", "assets/fonts/plex-sans-arabic-latin-500.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-600-normal.woff2", "assets/fonts/plex-sans-arabic-latin-600.woff2"],
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-700-normal.woff2", "assets/fonts/plex-sans-arabic-latin-700.woff2"],
   ["node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2", "assets/fonts/jetbrains-mono.woff2"],
+  // the Open Font License travels with the fonts
+  ["node_modules/@fontsource/ibm-plex-sans-arabic/LICENSE", "assets/fonts/LICENSE-IBM-Plex-Sans-Arabic.txt"],
+  ["node_modules/@fontsource-variable/jetbrains-mono/LICENSE", "assets/fonts/LICENSE-JetBrains-Mono.txt"],
 ]) {
   const fromPath = path.join(root, from);
   if (fs.existsSync(fromPath)) fs.copyFileSync(fromPath, path.join(dist, to));
