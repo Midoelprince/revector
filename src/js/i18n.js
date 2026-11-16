@@ -371,10 +371,9 @@
 
   /* Example pictures in the showcase: their names appear in tooltips and screen-reader labels. */
   var EXAMPLES = {
-    "coffee cup": "كوب قهوة", "sun badge": "شارة الشمس", "mountain badge": "شارة الجبل", "paper plane": "طائرة ورقية",
-    "pine badge": "شارة الصنوبر", "chili pepper": "فلفل حار", "donut": "دونات", "night harbor": "ميناء ليلي",
-    "night owl": "بومة الليل", "cloud sync": "مزامنة سحابية", "geometric shapes": "أشكال هندسية", "bubble tea": "شاي الفقاعات",
-    "calligraphy": "خط عربي", "mascot": "تميمة", "geo badge": "شارة هندسية"
+    "lighthouse": "منارة", "fox": "ثعلب", "cactus": "صبّار", "rocket": "صاروخ",
+    "whale": "حوت", "retro sun": "شمس الغروب", "camera icon": "أيقونة كاميرا", "bicycle": "درّاجة",
+    "pizza": "بيتزا", "camping badge": "شارة التخييم", "calligraphy": "خط عربي", "mascot": "تميمة"
   };
   for (var ex in EXAMPLES) if (Object.prototype.hasOwnProperty.call(EXAMPLES, ex)) {
     AR[ex] = EXAMPLES[ex];
