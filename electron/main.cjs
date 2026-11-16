@@ -155,7 +155,8 @@ ipcMain.handle("update:download", async () => {
 });
 ipcMain.handle("update:install", () => {
   if (!autoUpdater || state.status !== "downloaded") return false;
-  setImmediate(() => autoUpdater.quitAndInstall());
+  // Silent install (no setup wizard), then start the new version.
+  setImmediate(() => autoUpdater.quitAndInstall(true, true));
   return true;
 });
 
