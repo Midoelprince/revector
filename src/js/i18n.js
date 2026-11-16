@@ -310,8 +310,65 @@
     "Pick the number of colours or let it be chosen for you, recolour, merge or cut out any colour, and remove the background with one checkbox.": "اختر عدد الألوان أو دعه يُختار تلقائيًا، وأعد تلوين أي لون أو ادمجه أو اقتطعه، وأزل الخلفية بخانة اختيار واحدة.",
     "Save SVG, PDF, EPS or DXF with fills only, ready for Illustrator, Inkscape, cutting software and CAD, or a cleaned-up PNG.": "احفظ بصيغ SVG أو PDF أو EPS أو DXF بتعبئة فقط، جاهزة لإليستريتور وإنكسكيب وبرامج القص وCAD، أو كصورة PNG منقّاة."
   };
+  /* Paragraphs with links inside are split into several text nodes, so they are translated as a whole:
+     key = the element's English text (whitespace collapsed), value = the Arabic inner HTML. */
+  var L = function (t) { return '<a href="/#convert">' + t + "</a>"; };
+  var AR_HTML = {
+    "Bitmap images, such as JPEGs and PNGs are a grid of colored pixels. We turn them into shapes.":
+      "الصور النقطية مثل " + L("JPEG") + " و" + L("PNG") + " عبارة عن شبكة من البكسلات الملوّنة، ونحن نحوّلها إلى أشكال.",
+    "We combine deep learning networks and classical algorithms that together form the core functionality of Revector. Our proprietary computational geometry framework lets us make automated edits and localized optimizations that are simply not possible with conventional vector image representations. Shape outlines often consist of straight or smoothly varying sections separated from one another by discrete corners.":
+      "نجمع بين خوارزميات متعددة تشكّل معًا جوهر Revector. يتيح لنا إطار الهندسة الحسابية الخاص بنا إجراء تعديلات تلقائية وتحسينات موضعية لا تتيحها التمثيلات المتجهية التقليدية. فالحدود الخارجية للأشكال تتألف غالبًا من مقاطع مستقيمة أو متغيرة بنعومة، تفصل بينها زوايا واضحة.",
+    "Save as SVG, EPS, DXF and PDF vectors, or a cleaned-up PNG picture.":
+      "احفظ النتيجة كمتجهات بصيغ " + L("SVG") + " و" + L("EPS") + " و" + L("DXF") + " و" + L("PDF") + "، أو كصورة PNG منقّاة.",
+    "Rebuild blurry logos, old scans and tiny web graphics as sharp master files in EPS, PDF or SVG.":
+      "أعد بناء الشعارات الضبابية والمسوحات القديمة ورسوميات الويب الصغيرة كملفات أصلية حادة بصيغ " + L("EPS") + " أو " + L("PDF") + " أو SVG.",
+    "Turn a small, fuzzy JPEG into a multi-color SVG cut file with crisp corners and solid shapes, ready for weeding and pressing.":
+      "حوِّل صورة JPEG صغيرة ومشوّشة إلى ملف قص " + L("SVG متعدد الألوان") + " بزوايا حادة وأشكال مصمتة، جاهز للتقشير والكبس الحراري.",
+    "Export DXF or SVG for your cutting software. The outline setting draws every shape as a thin stroke, and the DXF output keeps to simple lines and curves that your machine software reads without trouble.":
+      "صدِّر " + L("DXF") + " أو SVG لبرنامج القص لديك. يرسم خيار الحدود الخارجية كل شكل كخط رفيع، ويقتصر ملف DXF على خطوط ومنحنيات بسيطة يقرؤها برنامج آلتك دون مشاكل.",
+    "Turn PNG, JPG, GIF and WebP pictures into clean SVG, PDF, EPS and DXF vectors on your computer. AI-powered tracing for logos, illustrations, print, web, CAD, CNC and all kinds of design workflows.":
+      "حوِّل صور PNG وJPG وGIF وWebP إلى متجهات SVG وPDF وEPS وDXF نظيفة على جهازك. تتبّع ذكي للشعارات والرسوم والطباعة والويب وCAD وCNC ولكل أنواع سير عمل التصميم.",
+    "Open any raster image and convert it to scalable vector artwork in seconds. Revector turns pixels into editable shapes with smooth curves, fine details and clean colors, for logos, illustrations, diagrams, sketches and design assets. It runs offline on your own computer, so your pictures never leave it.":
+      "افتح أي صورة نقطية وحوّلها إلى عمل متجهي قابل للتكبير خلال ثوانٍ. يحوّل Revector البكسلات إلى أشكال قابلة للتحرير بمنحنيات ناعمة وتفاصيل دقيقة وألوان نظيفة، للشعارات والرسوم والمخططات والاسكتشات وعناصر التصميم. يعمل دون اتصال على جهازك، فلا تغادره صورك أبدًا.",
+    "Start from everyday picture formats like PNG, JPG, GIF, BMP and WebP, then save useful vector formats including SVG, EPS, DXF and PDF.":
+      "ابدأ من صيغ الصور المعتادة مثل " + L("PNG") + " و" + L("JPG") + " و" + L("GIF") + " و" + L("BMP") + " و" + L("WebP") + "، ثم احفظ بصيغ متجهية مفيدة منها " + L("SVG") + " و" + L("EPS") + " و" + L("DXF") + " و" + L("PDF") + ".",
+    "Whether you're redrawing a logo, preparing art for print, making pictures for the web or creating DXF paths for CAD and CNC work, Revector gives you clean, editable vector files for professional use.":
+      "سواء كنت تعيد رسم شعار، أو تجهّز عملًا للطباعة، أو تصنع صورًا للويب، أو تنشئ مسارات " + L("DXF") + " لأعمال CAD وCNC، يمنحك Revector ملفات متجهية نظيفة وقابلة للتحرير للاستخدام الاحترافي.",
+    "Keep resolution independence and small file sizes, with clear, crisp results on every screen size and in print.":
+      "حافظ على الاستقلال عن الدقة وأحجام الملفات الصغيرة، مع نتائج واضحة وحادة على كل الشاشات وفي الطباعة."
+  };
+
+  /* Example pictures in the showcase: their names appear in tooltips and screen-reader labels. */
+  var EXAMPLES = {
+    "coffee cup": "كوب قهوة", "sun badge": "شارة الشمس", "mountain badge": "شارة الجبل", "paper plane": "طائرة ورقية",
+    "pine badge": "شارة الصنوبر", "chili pepper": "فلفل حار", "donut": "دونات", "night harbor": "ميناء ليلي",
+    "night owl": "بومة الليل", "cloud sync": "مزامنة سحابية", "geometric shapes": "أشكال هندسية", "bubble tea": "شاي الفقاعات",
+    "calligraphy": "خط عربي", "mascot": "تميمة", "geo badge": "شارة هندسية"
+  };
+  for (var ex in EXAMPLES) if (Object.prototype.hasOwnProperty.call(EXAMPLES, ex)) {
+    AR[ex] = EXAMPLES[ex];
+    AR["Show example: " + ex] = "عرض المثال: " + EXAMPLES[ex];
+  }
+  AR["Main"] = "القائمة الرئيسية";
+
   var EN = {};
   for (var k in AR) if (Object.prototype.hasOwnProperty.call(AR, k)) EN[AR[k]] = k;
+
+  var swapped = [];
+  function norm(s) { return s.replace(/\s+/g, " ").trim(); }
+  function swapHtml(el) {
+    if (lang !== "ar" || el.__i18nEn !== undefined) return el.__i18nEn !== undefined;
+    var ar = AR_HTML[norm(el.textContent || "")];
+    if (!ar) return false;
+    el.__i18nEn = el.innerHTML;
+    el.innerHTML = ar;
+    swapped.push(el);
+    return true;
+  }
+  function restoreHtml() {
+    for (var i = 0; i < swapped.length; i++) { swapped[i].innerHTML = swapped[i].__i18nEn; swapped[i].__i18nEn = undefined; }
+    swapped = [];
+  }
 
   var lang = "en";
   try { lang = localStorage.getItem("lang") === "ar" ? "ar" : "en"; } catch (e) {}
@@ -360,11 +417,13 @@
       if (tag === "SCRIPT" || tag === "STYLE" || tag === "svg" || tag === "SVG" || tag === "CODE" || tag === "PRE") return;
       if (root.hasAttribute("data-no-i18n")) return;
       swapAttrs(root);
+      if ((tag === "P" || tag === "LI") && swapHtml(root)) return;
     }
     var c = root.firstChild;
     while (c) { walk(c); c = c.nextSibling; }
   }
   function translateAll() {
+    if (lang !== "ar") restoreHtml();
     walk(document.body);
     var sw = document.querySelectorAll("[data-lang-switch]");
     for (var i = 0; i < sw.length; i++) sw[i].textContent = lang === "ar" ? "English" : "العربية";

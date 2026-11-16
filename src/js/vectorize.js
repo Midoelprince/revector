@@ -268,7 +268,9 @@
 
   // Signed distance (in source pixels, + inside) of one color within a padded box, Gaussian-smoothed,
   // then clamped so every source pixel keeps its own sign: thin strokes and single pixels survive.
-  const SDF_SIGMA = 1.0;
+  // kept small on purpose: stronger smoothing removed more stair steps but rounded every right-angle
+  // corner (square windows became blobs); 0.3 keeps squares square and still smooths diagonals
+  const SDF_SIGMA = 0.3;
   const SDF_CLAMP = 3.5, SDF_EPS = 0.05;
   function colorSdf(labels, w, h, lab, box) {
     const [x0, y0, x1, y1] = box, bw = x1 - x0, bh = y1 - y0, m = bw * bh;
@@ -543,7 +545,9 @@
   // ---------------- 4. edge vote (v2) ----------------
   // Smooths ragged borders: a pixel with at most 2 same-colored neighbours joins the color that
   // surrounds it (5+ of 8 neighbours, or 4+ when its own color is closer to that one).
-  const SMALL_AREA = 500;
+  // only specks this small (in source px²) get the looser, smoother fit; letters, windows and
+  // icon details are larger and must keep their straight sides and corners
+  const SMALL_AREA = 40;
   function edgeVote(labels, data, w, h, centers, passes) {
     const n = w * h, cnt = new Int32Array(256), seen = [];
     const src = new Uint8Array(n);
@@ -754,10 +758,10 @@
     }
     return true;
   }
-  function fitCubic(X, Y, first, last, t1, t2, err, out, depth) {
+  function fitCubic(X, Y, first, last, t1, t2, err, out, depth, lineErr) {
     const n = last - first + 1;
     if (n < 2) return;
-    if (lineFits(X, Y, first, last, err)) { out.push({ l: [X[last], Y[last]] }); return; }
+    if (lineFits(X, Y, first, last, lineErr || err)) { out.push({ l: [X[last], Y[last]] }); return; }
     if (n === 2) {
       const d = Math.hypot(X[last] - X[first], Y[last] - Y[first]) / 3;
       out.push({ c: [X[first] + t1[0] * d, Y[first] + t1[1] * d, X[last] + t2[0] * d, Y[last] + t2[1] * d, X[last], Y[last]] });
@@ -778,8 +782,8 @@
     if (depth > 20 || n < 4) { out.push({ c: b.slice(2) }); return; }
     split = Math.min(last - 1, Math.max(first + 1, split));
     const tc = norm(X[split - 1] - X[split + 1], Y[split - 1] - Y[split + 1]);
-    fitCubic(X, Y, first, split, t1, tc, err, out, depth + 1);
-    fitCubic(X, Y, split, last, [-tc[0], -tc[1]], t2, err, out, depth + 1);
+    fitCubic(X, Y, first, split, t1, tc, err, out, depth + 1, lineErr);
+    fitCubic(X, Y, split, last, [-tc[0], -tc[1]], t2, err, out, depth + 1, lineErr);
   }
   function endTangent(X, Y, from, step, other) {
     const k = Math.min(3, Math.abs(other - from));
@@ -791,11 +795,18 @@
   function findCorners(px, py, n, closed, settings) {
     const isC = new Uint8Array(n);
     if (n < 3) return isC;
-    const ns = n / (settings.scale || 1);
+    const sc = settings.scale || 1, ns = n / sc;
     const extra = closed ? (ns < 40 ? 38 : ns < 90 ? 22 : ns < 160 ? 10 : 0) : (ns < 12 ? 25 : 0);
-    const thr = Math.cos(Math.min(170, settings.cornerDeg + extra) * Math.PI / 180);
+    // small loops get a looser threshold, but never so loose that a right angle stops being a corner
+    // (unless the user picked a corner setting softer than that)
+    const deg = Math.min(settings.cornerDeg + extra, Math.max(settings.cornerDeg, RIGHT_ANGLE_DEG));
+    const thr = Math.cos(Math.min(170, deg) * Math.PI / 180);
     const tipThr = Math.cos(Math.min(175, Math.max(settings.cornerDeg + extra, 112)) * Math.PI / 180);
-    const kBig = n < 20 ? 2 : n < 60 ? 3 : 4;
+    // windows are measured in source pixels, so at 4x they span 4x as many outline vertices
+    const kBig = (ns < 20 ? 2 : ns < 60 ? 3 : 4) * sc, kTip = 2 * sc;
+    // non-maximum suppression only within half the measuring window: two real corners can be closer
+    // than a full window (both ends of a 4 px letter stem), and a full-window rule kept just one
+    const nBig = Math.max(1, kBig >> 1), nTip = Math.max(1, kTip >> 1);
     const at = (i) => closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i));
     const cosAt = (i, k) => {
       const a = at(i - k), b = at(i + k);
@@ -803,21 +814,25 @@
       const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
       return la && lb ? (ax * bx + ay * by) / (la * lb) : 1;
     };
-    const big = new Float32Array(n), small = new Float32Array(n);
-    for (let i = 0; i < n; i++) { big[i] = cosAt(i, kBig); small[i] = cosAt(i, 2); }
+    const big = new Float32Array(n), small = new Float32Array(n), turns = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      big[i] = cosAt(i, kBig); small[i] = cosAt(i, kTip);
+      const a = at(i - 1), b = at(i + 1);
+      turns[i] = (px[i] - px[a]) * (py[b] - py[i]) - (py[i] - py[a]) * (px[b] - px[i]) ? 1 : 0;
+    }
+    // only vertices where the outline actually turns can be corners, and only they may suppress a
+    // neighbour: in a 2 px notch the sharpest reading sits mid-way along the flat end, which is no corner
     const lo = closed ? 0 : 1, hi = closed ? n : n - 1;
     for (let i = lo; i < hi; i++) {
-      const a = at(i - 1), b = at(i + 1);
-      const turn = (px[i] - px[a]) * (py[b] - py[i]) - (py[i] - py[a]) * (px[b] - px[i]);
-      if (!turn) continue;
+      if (!turns[i]) continue;
       let hit = false;
       if (big[i] < thr) {
         hit = true;
-        for (let j = -kBig; j <= kBig && hit; j++) { if (!j) continue; const q = at(i + j); if (big[q] < big[i] || (big[q] === big[i] && j < 0 && isC[q])) hit = false; }
+        for (let j = -nBig; j <= nBig && hit; j++) { if (!j) continue; const q = at(i + j); if (!turns[q]) continue; if (big[q] < big[i] || (big[q] === big[i] && j < 0 && isC[q])) hit = false; }
       }
       if (!hit && small[i] < tipThr) {
         hit = true;
-        for (let j = -2; j <= 2 && hit; j++) { if (!j) continue; const q = at(i + j); if (small[q] < small[i] || (small[q] === small[i] && j < 0 && isC[q])) hit = false; }
+        for (let j = -nTip; j <= nTip && hit; j++) { if (!j) continue; const q = at(i + j); if (!turns[q]) continue; if (small[q] < small[i] || (small[q] === small[i] && j < 0 && isC[q])) hit = false; }
       }
       if (hit) isC[i] = 1;
     }
@@ -965,7 +980,7 @@
         if (d1 <= lineTolSq && d2 <= lineTolSq) {
           pass1.push({ l: [ex, ey] });
         } else {
-          pass1.push({ c: [x1, y1, x2, y2, ex, ey] });
+          pass1.push(g.arc ? g : { c: [x1, y1, x2, y2, ex, ey] });
         }
         cx = ex; cy = ey;
       }
@@ -1011,16 +1026,17 @@
     cx = start[0]; cy = start[1];
     i = 0;
     while (i < pass2.length) {
-      if (!pass2[i].c) {
+      if (!pass2[i].c || pass2[i].arc) {
         out.push(pass2[i]);
-        cx = pass2[i].l[0]; cy = pass2[i].l[1];
+        const end = pass2[i].l || pass2[i].c.slice(4);
+        cx = end[0]; cy = end[1];
         i++;
         continue;
       }
       // Gather contiguous cubics that share smooth tangents at joints
       const chain = [pass2[i]];
       let j = i + 1;
-      while (j < pass2.length && pass2[j].c && chain.length < 6) {
+      while (j < pass2.length && pass2[j].c && !pass2[j].arc && chain.length < 6) {
         const prev = chain[chain.length - 1].c;
         const next = pass2[j].c;
         const tIn = norm(prev[4] - prev[2], prev[5] - prev[3]);
@@ -1066,11 +1082,186 @@
     return { start, segs: out.length ? out : pass2 };
   }
 
+  // ---------------- geometric primitives ----------------
+  // A closed outline that matches a circle, an ellipse, a rectangle or a rounded rectangle within a
+  // small tolerance is replaced by that exact shape, so a round dot is a true circle and a square
+  // window keeps four straight sides and four sharp corners.
+  const KAPPA = 0.5522847498;
+  function polyMoments(px, py) {
+    const n = px.length;
+    let a = 0, cx = 0, cy = 0, xx = 0, yy = 0, xy = 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, x0 = px[i], y0 = py[i], x1 = px[j], y1 = py[j], c = x0 * y1 - x1 * y0;
+      a += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c;
+      xx += (x0 * x0 + x0 * x1 + x1 * x1) * c; yy += (y0 * y0 + y0 * y1 + y1 * y1) * c;
+      xy += (x0 * y1 + 2 * x0 * y0 + 2 * x1 * y1 + x1 * y0) * c;
+    }
+    a /= 2;
+    if (!a) return null;
+    cx /= 6 * a; cy /= 6 * a;
+    const sxx = xx / (12 * a) - cx * cx, syy = yy / (12 * a) - cy * cy, sxy = xy / (24 * a) - cx * cy;
+    return { area: Math.abs(a), sign: Math.sign(a), cx, cy, sxx, syy, sxy };
+  }
+  // Distance from (x, y) to a rounded rectangle centred at the origin, axis-aligned in its own frame.
+  function roundRectDist(x, y, hw, hh, r) {
+    const qx = Math.abs(x) - hw + r, qy = Math.abs(y) - hh + r;
+    return Math.abs(Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r);
+  }
+  function ellipseDist(u, v, a, b) {
+    const rho = Math.hypot(u / a, v / b);
+    if (!rho) return Math.min(a, b);
+    return Math.hypot(u - u / rho, v - v / rho);
+  }
+  // Builds a closed path in the shape's own frame (centre c, angle th), wound like the source outline.
+  function primitivePath(pts, cx, cy, th, ccw) { // ccw: sign of the source outline's area
+    const cs = Math.cos(th), sn = Math.sin(th);
+    const T = (p) => [cx + p[0] * cs - p[1] * sn, cy + p[0] * sn + p[1] * cs];
+    let segs = pts.segs;
+    let start = pts.start;
+    // keep the source outline's winding (shared borders are walked in both directions)
+    const ends = [start, ...segs.map((g) => g.l || [g.c[4], g.c[5]])];
+    let a = 0;
+    for (let i = 0; i < ends.length - 1; i++) a += ends[i][0] * ends[i + 1][1] - ends[i + 1][0] * ends[i][1];
+    if (Math.sign(a) !== ccw) {
+      const f = reverseFit({ start, segs });
+      start = f.start; segs = f.segs;
+    }
+    return {
+      start: T(start),
+      segs: segs.map((g) => g.l ? { l: T(g.l) } : { c: [...T([g.c[0], g.c[1]]), ...T([g.c[2], g.c[3]]), ...T([g.c[4], g.c[5]])] }),
+      primitive: pts.kind
+    };
+  }
+  function ellipseSegs(a, b) {
+    const k = KAPPA;
+    return { kind: a === b ? "circle" : "ellipse", start: [a, 0], segs: [
+      { c: [a, b * k, a * k, b, 0, b] }, { c: [-a * k, b, -a, b * k, -a, 0] },
+      { c: [-a, -b * k, -a * k, -b, 0, -b] }, { c: [a * k, -b, a, -b * k, a, 0] }] };
+  }
+  function roundRectSegs(hw, hh, r) {
+    const k = KAPPA * r, segs = [];
+    if (r <= 0) return { kind: "rectangle", start: [hw, -hh], segs: [{ l: [hw, hh] }, { l: [-hw, hh] }, { l: [-hw, -hh] }, { l: [hw, -hh] }] };
+    const side = (x, y) => segs.push({ l: [x, y] });
+    const arc = (c) => segs.push({ c });
+    side(hw, hh - r); arc([hw, hh - r + k, hw - r + k, hh, hw - r, hh]);
+    if (hw > r) side(-hw + r, hh);
+    arc([-hw + r - k, hh, -hw, hh - r + k, -hw, hh - r]);
+    if (hh > r) side(-hw, -hh + r);
+    arc([-hw, -hh + r - k, -hw + r - k, -hh, -hw + r, -hh]);
+    if (hw > r) side(hw - r, -hh);
+    arc([hw - r + k, -hh, hw, -hh + r - k, hw, -hh + r]);
+    return { kind: r >= Math.min(hw, hh) - 1e-6 ? "capsule" : "rounded-rectangle", start: [hw, -hh + r], segs };
+  }
+  function fitPrimitive(px, py, settings) {
+    const n = px.length, sc = settings.scale || 1;
+    if (n < 8 || n > 6000 * sc) return null;
+    const M = polyMoments(px, py);
+    if (!M) return null;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < n; i++) { if (px[i] < minX) minX = px[i]; if (px[i] > maxX) maxX = px[i]; if (py[i] < minY) minY = py[i]; if (py[i] > maxY) maxY = py[i]; }
+    const size = Math.max(maxX - minX, maxY - minY) / sc;
+    if (Math.min(maxX - minX, maxY - minY) / sc < 2.5) return null;
+    // tolerance in source pixels (grows slowly with size), plus the half pixel a stair step can stray
+    const tol = Math.min(1.1, 0.45 + 0.008 * size) * sc, stair = 0.5;
+    const accept = (dist) => {
+      let mx = 0, sum = 0;
+      for (let i = 0; i < n; i++) { const d = dist(px[i], py[i]); if (d > mx) mx = d; sum += d; }
+      return mx <= tol + stair && sum / n <= 0.45 * tol + 0.35 ? mx : Infinity;
+    };
+    const ccw = M.sign;
+    const cands = [];
+    // ellipse (circle when the axes agree) from the second moments of the filled outline
+    {
+      const tr = M.sxx + M.syy, det = M.sxx * M.syy - M.sxy * M.sxy, disc = Math.sqrt(Math.max(0, tr * tr / 4 - det));
+      const l1 = tr / 2 + disc, l2 = tr / 2 - disc;
+      if (l2 > 0) {
+        let a = 2 * Math.sqrt(l1), b = 2 * Math.sqrt(l2), th = 0.5 * Math.atan2(2 * M.sxy, M.sxx - M.syy);
+        if (a / b < 1.06) { const r = Math.sqrt(M.area / Math.PI); a = b = r; th = 0; }
+        const cs = Math.cos(th), sn = Math.sin(th);
+        const e = accept((x, y) => { const dx = x - M.cx, dy = y - M.cy; return ellipseDist(dx * cs + dy * sn, -dx * sn + dy * cs, a, b); });
+        if (e < Infinity) cands.push({ e: e * (a === b ? 0.9 : 1), path: () => primitivePath(ellipseSegs(a, b), M.cx, M.cy, th, ccw) });
+      }
+    }
+    // rectangle / rounded rectangle at the angle of the smallest bounding box
+    {
+      let best = null;
+      const tryAngle = (th) => {
+        const cs = Math.cos(th), sn = Math.sin(th);
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (let i = 0; i < n; i++) { const u = px[i] * cs + py[i] * sn, v = -px[i] * sn + py[i] * cs; if (u < x0) x0 = u; if (u > x1) x1 = u; if (v < y0) y0 = v; if (v > y1) y1 = v; }
+        const ar = (x1 - x0) * (y1 - y0);
+        if (!best || ar < best.ar - 1e-9) best = { ar, th, x0, x1, y0, y1 };
+      };
+      for (let d = 0; d < 90; d += 1) tryAngle(d * Math.PI / 180);
+      const t0 = best.th;
+      for (let d = -1; d <= 1; d += 0.1) tryAngle(t0 + d * Math.PI / 180);
+      const { th, x0, x1, y0, y1 } = best, hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
+      const cs = Math.cos(th), sn = Math.sin(th), ucx = (x0 + x1) / 2, vcy = (y0 + y1) / 2;
+      const cx = ucx * cs - vcy * sn, cy = ucx * sn + vcy * cs;
+      let r = Math.sqrt(Math.max(0, 4 * hw * hh - M.area) / (4 - Math.PI));
+      r = Math.min(r, hw, hh);
+      if (r < 1.0 * sc) r = 0;
+      const e = accept((x, y) => { const dx = x - cx, dy = y - cy; return roundRectDist(dx * cs + dy * sn, -dx * sn + dy * cs, hw, hh, r); });
+      if (e < Infinity) cands.push({ e, path: () => primitivePath(roundRectSegs(hw, hh, r), cx, cy, th, ccw) });
+    }
+    if (!cands.length) return null;
+    cands.sort((p, q) => p.e - q.e);
+    return cands[0].path();
+  }
+
+  // A side between two corners becomes a straight line, or else a circular arc through both corners,
+  // when every edge point lies within tolerance; otherwise null and a free curve is fitted.
+  function fitRunPrimitive(xs, ys, settings) {
+    const m = xs.length - 1, sc = settings.scale || 1;
+    if (m < 1) return null;
+    const x0 = xs[0], y0 = ys[0], x1 = xs[m], y1 = ys[m], dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+    if (L < 1e-9) return null;
+    const ux = dx / L, uy = dy / L;
+    let maxOff = 0;
+    for (let i = 1; i < m; i++) maxOff = Math.max(maxOff, Math.abs((xs[i] - x0) * uy - (ys[i] - y0) * ux));
+    if (maxOff <= RUN_LINE_TOL * sc) return [{ l: [x1, y1] }];
+    if (m < 4 || L < 2 * sc) return null;
+    // circle through both ends: its centre lies on the chord's perpendicular bisector, and the
+    // condition |Q-C| = |P0-C| is linear in the offset t along that bisector, so least squares is closed form
+    const Mx = (x0 + x1) / 2, My = (y0 + y1) / 2, nx = -uy, ny = ux, h2 = (L / 2) * (L / 2);
+    let sab = 0, sbb = 0, side = 0;
+    for (let i = 1; i < m; i++) {
+      const qx = xs[i] - Mx, qy = ys[i] - My, a = qx * qx + qy * qy - h2, b = 2 * (nx * qx + ny * qy);
+      sab += a * b; sbb += b * b; side += nx * qx + ny * qy;
+    }
+    if (!sbb) return null;
+    const t = sab / sbb, cx = Mx + t * nx, cy = My + t * ny, R = Math.hypot(x0 - cx, y0 - cy);
+    if (R > 60 * sc * Math.max(1, L / (20 * sc))) return null;
+    for (let i = 1; i < m; i++) if (Math.abs(Math.hypot(xs[i] - cx, ys[i] - cy) - R) > RUN_ARC_TOL * sc) return null;
+    // sweep from the start to the end, going round the side the edge points bulge to
+    const a0 = Math.atan2(y0 - cy, x0 - cx), a1 = Math.atan2(y1 - cy, x1 - cx);
+    let sw = a1 - a0;
+    while (sw <= -Math.PI) sw += 2 * Math.PI;
+    while (sw > Math.PI) sw -= 2 * Math.PI;
+    const mid = Math.atan2(ys[m >> 1] - cy, xs[m >> 1] - cx);
+    let dm = mid - a0;
+    while (dm <= -Math.PI) dm += 2 * Math.PI;
+    while (dm > Math.PI) dm -= 2 * Math.PI;
+    if (Math.sign(dm) !== Math.sign(sw) || Math.abs(dm) > Math.abs(sw)) sw = sw > 0 ? sw - 2 * Math.PI : sw + 2 * Math.PI;
+    if (Math.abs(sw) < 12 * Math.PI / 180 || Math.abs(sw) > 1.7 * Math.PI || !isFinite(side)) return null;
+    const k = Math.ceil(Math.abs(sw) / (Math.PI / 2)), d = sw / k, hl = (4 / 3) * Math.tan(d / 4) * R, out = [];
+    for (let j = 0; j < k; j++) {
+      const s = a0 + j * d, e = s + d, cs = Math.cos(s), ss = Math.sin(s), ce = Math.cos(e), se = Math.sin(e);
+      const ex = j === k - 1 ? x1 : cx + R * ce, ey = j === k - 1 ? y1 : cy + R * se;
+      out.push({ c: [cx + R * cs - hl * ss, cy + R * ss + hl * cs, cx + R * ce + hl * se, cy + R * se - hl * ce, ex, ey], arc: true });
+    }
+    return out;
+  }
+
   // Fits a run of grid vertices (closed loop or open chain with fixed ends) -> { start, segs }.
   function fitPolyline(px, py, closed, settings) {
     const n = px.length;
     const segs = [];
     if (n < 2) return { start: [px[0], py[0]], segs };
+    if (closed && settings.shapes !== false) {
+      const prim = fitPrimitive(px, py, settings);
+      if (prim) return prim;
+    }
     const corners = findCorners(px, py, n, closed, settings);
     const cidx = [];
     if (!closed) { cidx.push(0); for (let i = 1; i < n - 1; i++) if (corners[i]) cidx.push(i); cidx.push(n - 1); }
@@ -1096,8 +1287,8 @@
       const X = xs.concat([xs[0]]), Y = ys.concat([ys[0]]);
       const tA = norm(xs[1] - xs[m - 1], ys[1] - ys[m - 1]);
       const tB = norm(xs[half + 1] - xs[half - 1], ys[half + 1] - ys[half - 1]);
-      fitCubic(X, Y, 0, half, tA, [-tB[0], -tB[1]], settings.err, segs, 0);
-      fitCubic(X, Y, half, m, tB, [-tA[0], -tA[1]], settings.err, segs, 0);
+      fitCubic(X, Y, 0, half, tA, [-tB[0], -tB[1]], settings.err, segs, 0, settings.lineErr);
+      fitCubic(X, Y, half, m, tB, [-tA[0], -tA[1]], settings.err, segs, 0, settings.lineErr);
       return postSimplifySegs([X[0], Y[0]], segs, closed, settings);
     }
     const count = closed ? cidx.length : cidx.length - 1;
@@ -1106,6 +1297,8 @@
       let xs = [px[a % n]], ys = [py[a % n]];
       runMids(px, py, a, b, n, xs, ys);
       xs.push(px[b % n]); ys.push(py[b % n]);
+      const runPrim = settings.shapes !== false && fitRunPrimitive(xs, ys, settings);
+      if (runPrim) { for (const g of runPrim) segs.push(g); continue; }
       smoothOpen(xs, ys, smooth);
       if (xs.length > 4) {
         const dp = simplifyDP(xs, ys, dpTol, false);
@@ -1115,7 +1308,7 @@
       if (last === 1) {
         segs.push({ l: [xs[1], ys[1]] });
       } else {
-        fitCubic(xs, ys, 0, last, endTangent(xs, ys, 0, 1, last), endTangent(xs, ys, last, -1, 0), settings.err, segs, 0);
+        fitCubic(xs, ys, 0, last, endTangent(xs, ys, 0, 1, last), endTangent(xs, ys, last, -1, 0), settings.err, segs, 0, settings.lineErr);
       }
     }
     return postSimplifySegs([px[cidx[0] % n], py[cidx[0] % n]], segs, closed, settings);
@@ -1258,6 +1451,9 @@
     { minArea: 1, err: 0.35, smooth: 1 }
   ];
   const CORNER_DEG = [105, 75, 56, 42, 30];
+  const RIGHT_ANGLE_DEG = 80;
+  // straight / arc acceptance for a side between corners, in source pixels
+  const RUN_LINE_TOL = 0.6, RUN_ARC_TOL = 0.55;
 
   function createSession(img) {
     const w = img.width, h = img.height, n = w * h;
@@ -1305,7 +1501,7 @@
     }
 
     function trace(options, progress) {
-      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true, reconstruct: true, groups: null, transparent: [] }, options || {});
+      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true, reconstruct: true, shapes: true, groups: null, transparent: [] }, options || {});
       const say = progress || function () {};
       const recon = opts.reconstruct !== false && Math.max(w, h) < RECON_MAX && w > 1 && h > 1;
       const S = recon ? RECON_SCALE : 1;
@@ -1368,9 +1564,13 @@
       const smoothMode = !!opts.iconLogoMode;
       const baseErr = det.err * det.err * (smoothMode ? 2.25 : 1) * (recon ? S * S * RECON_ERR : 1);
       const baseSmooth = det.smooth + (smoothMode ? 2 : 0);
-      const settings = { err: baseErr, smooth: baseSmooth, cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S };
+      const lineErr = det.err * det.err * (smoothMode ? 2.25 : 1) * S * S;
+      // straight-line tolerance stays in source pixels: the 4x curve tolerance is tighter, which made
+      // slightly noisy straight edges come out wavy
+      const settings = { err: baseErr, lineErr, smooth: baseSmooth, cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S, shapes: opts.shapes !== false };
       // v2: small shapes get a looser, smoother fit with fewer corners
-      settings.small = { err: settings.err * 4, smooth: settings.smooth + 2, cornerDeg: Math.min(150, Math.max(settings.cornerDeg + 30, 100)), iconLogoMode: smoothMode, scale: S };
+      const smallDeg = settings.cornerDeg < RIGHT_ANGLE_DEG ? Math.min(RIGHT_ANGLE_DEG, settings.cornerDeg + 20) : Math.min(150, settings.cornerDeg + 30);
+      settings.small = { err: settings.err * 2, lineErr: settings.lineErr * 2, smooth: settings.smooth + 1, cornerDeg: smallDeg, iconLogoMode: smoothMode, scale: S, shapes: settings.shapes };
 
       let layers = [], nodes = 0;
       if (stacked) {
