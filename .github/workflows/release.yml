@@ -38,3 +38,11 @@ jobs:
         run: npm run publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The in-app updater asks GitHub for the "Latest" release, and a release created in the UI
+      # does not always take that label, so installed apps would report "up to date".
+      - name: Mark the release as Latest
+        shell: bash
+        run: gh release edit "$GITHUB_REF_NAME" --latest --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
