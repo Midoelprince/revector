@@ -59,7 +59,7 @@ This command outputs the installer (`Revector-Setup-<version>.exe`), the portabl
 On Linux the packager needs Wine with 32-bit support and a display: `apt install wine32 xvfb`, then `xvfb-run -a npm run dist`.
 
 ### 4. Publishing a Release
-Bump `"version"` in `package.json`, merge it to `main`, then create a tag that matches it (for example `v1.2.2`) — from the GitHub UI (*Releases → Draft a new release → choose a new tag*) or with `git tag v1.2.2 && git push origin v1.2.2`. The **Release** workflow (`.github/workflows/release.yml`) builds the Windows installer and portable app on a Windows runner and attaches them, with the `.blockmap` and `latest.yml` the in-app updater reads, to the release.
+Bump `"version"` in `package.json`, merge it to `main`, then create a tag that matches it (for example `v2.0.0`) — from the GitHub UI (*Releases → Draft a new release → choose a new tag*) or with `git tag v2.0.0 && git push origin v2.0.0`. The **Release** workflow (`.github/workflows/release.yml`) builds the Windows installer and portable app on a Windows runner and attaches them, with the `.blockmap` and `latest.yml` the in-app updater reads, to the release.
 
 ***
 
