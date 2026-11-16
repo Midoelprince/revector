@@ -34,15 +34,43 @@ jobs:
       - name: Make the app icon
         run: npm run icons
 
+      # electron-builder 26 uploads the installer and the portable app in parallel, and when no
+      # release exists each upload creates its own, so files end up split over duplicate releases.
+      # Creating one draft first makes every upload go into it. A release made in the GitHub UI
+      # already exists and is used as it is.
+      - name: Create the release as a draft
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; uploading into it."
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+              --title "${GITHUB_REF_NAME#v}" --notes "Revector ${GITHUB_REF_NAME#v}"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and publish
         run: npm run publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # The in-app updater asks GitHub for the "Latest" release, and a release created in the UI
-      # does not always take that label, so installed apps would report "up to date".
-      - name: Mark the release as Latest
+      # The in-app updater reads latest.yml from the "Latest" release, so stop here if any file is missing.
+      - name: Check every file was uploaded
         shell: bash
-        run: gh release edit "$GITHUB_REF_NAME" --latest --repo "$GITHUB_REPOSITORY"
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          assets=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          echo "$assets"
+          for f in latest.yml "Revector-Setup-$version.exe" "Revector-Setup-$version.exe.blockmap" "Revector-Portable-$version.exe"; do
+            grep -qxF "$f" <<<"$assets" || { echo "::error::$f is missing from release $GITHUB_REF_NAME"; exit 1; }
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish the draft and mark it "Latest": the in-app updater only looks at the Latest release.
+      - name: Publish the release and mark it as Latest
+        shell: bash
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
