@@ -7,7 +7,7 @@ const server = http.createServer((req,res)=>{
   let pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
   if (pathname === '/') pathname = '/index.html';
   let file = path.join(root, pathname.replace(/^\//,''));
-  if (!file.startsWith(root)) { res.writeHead(403); return res.end(); }
+  if (file !== root && !file.startsWith(root + path.sep)) { res.writeHead(403); return res.end(); }
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
   if (!path.extname(file) && fs.existsSync(file + '.html')) file += '.html';
   if (!fs.existsSync(file)) {
