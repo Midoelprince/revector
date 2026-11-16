@@ -196,7 +196,7 @@
     }
     const w = srcCanvas.width, h = srcCanvas.height;
     dstCanvas.width = w; dstCanvas.height = h;
-    const ctx = dstCanvas.getContext("2d");
+    const ctx = dstCanvas.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(srcCanvas, 0, 0);
     const imgData = ctx.getImageData(0, 0, w, h);
     binarizeImageData(imgData, opts);

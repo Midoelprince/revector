@@ -162,10 +162,10 @@
       mode: "split", view: { s: 1, tx: 0, ty: 0 }, seam: 0.5,
       opts: { colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: false, shapes: true },
       pick: -1, history: [], hIdx: -1, pendingHidden: null, commitOnDone: false,
-      gapFill: true, strokes: false, edit: false, crop: false, job: 0,
+      gapFill: true, strokes: false, edit: false, crop: false, job: 0, needFit: false,
       symmetry: false, merging: false, selected: new Set()
     };
-    let worker = null, workerOk = true, localSession = null, sentImage = -1;
+    let worker = null, workerOk = true, localSession = null, sentImage = -1, workerFail = null;
     let showError = () => {}, showNetwork = () => {}, showFatal = () => {};
 
     function status(text) { statusEls.forEach((el) => { el.textContent = text || ""; }); }
@@ -179,7 +179,7 @@
     function getWorker() {
       if (!workerOk) return null;
       if (!worker) {
-        try { worker = new Worker("/assets/js/worker.js"); worker.onerror = () => { workerOk = false; worker = null; sentImage = -1; showNetwork(); }; }
+        try { worker = new Worker("/assets/js/worker.js"); worker.onerror = () => { workerOk = false; worker = null; sentImage = -1; showNetwork(); const f = workerFail; workerFail = null; if (f) f(); }; }
         catch (e) { workerOk = false; worker = null; }
       }
       return worker;
@@ -209,6 +209,7 @@
 
     function run(resetPalette) {
       const id = ++st.job;
+      if (resetPalette) st.needFit = true;
       const options = Object.assign({}, st.opts);
       if (!resetPalette && st.clusters) {
         options.centers = st.clusters.map((c) => c.rgb);
@@ -232,10 +233,11 @@
         progress.classList.remove("on");
         st.result = result; st.hidden = st.pendingHidden || new Set(); st.pendingHidden = null;
         $("[data-opt=removeBg]", root).checked = bgCell() ? bgCell().transparent : false;
-        render(); renderSwatches(); if (resetPalette) fit();
+        render(); renderSwatches(); if (st.needFit) { st.needFit = false; fit(); }
         if (st.commitOnDone || !st.history.length) { st.commitOnDone = false; commit(); }
       };
       const local = () => setTimeout(() => {
+        if (id !== st.job) return;
         try {
           if (!localSession || localSession.id !== st.imageId) {
             const img = imageDataOf(st.trace); if (st.symmetry) mirror(img);
@@ -254,9 +256,10 @@
       const onMsg = (e) => {
         if (e.data.id !== id) return;
         if (e.data.type === "progress") showProgress(e.data.p, e.data.text);
-        else { w.removeEventListener("message", onMsg); if (e.data.type === "done") done(e.data.result); else { sentImage = -1; local(); } }
+        else { w.removeEventListener("message", onMsg); workerFail = null; if (e.data.type === "done") done(e.data.result); else { sentImage = -1; local(); } }
       };
       w.addEventListener("message", onMsg);
+      workerFail = () => { w.removeEventListener("message", onMsg); local(); };
       w.postMessage({ type: "trace", id, imageId: st.imageId, options });
     }
 
@@ -551,7 +554,7 @@
         const c = t.getContext("2d"); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high"; c.drawImage(canvas, 0, 0, t.width, t.height);
         st.trace = t;
       }
-      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
+      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; binC.getContext("2d", { willReadFrequently: true }); if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
       st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null;
       st.history = []; st.hIdx = -1; st.pick = -1; updateHistoryButtons();
       fileEl.textContent = `${name || "image"}  ·  ${canvas.width} × ${canvas.height}`;
@@ -577,7 +580,11 @@
       try {
         let bmp;
         try { bmp = await createImageBitmap(file); }
-        catch (e) { bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); }); }
+        catch (e) {
+          const url = URL.createObjectURL(file);
+          try { bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; }); }
+          finally { URL.revokeObjectURL(url); }
+        }
         const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
         c.getContext("2d").drawImage(bmp, 0, 0);
         status("");
@@ -840,7 +847,10 @@
     $("[data-app-close]", root).addEventListener("click", () => close(false));
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape" || !root.classList.contains("open")) return;
+      const openDialog = $(".app-dialog:not([hidden])", root);
+      if (openDialog) { openDialog.hidden = true; return; }
       if (!pop.hidden) { closePop(); return; }
+      if (st.crop || cropStart) { cropStart = null; cropBox.style.display = "none"; setCrop(false); return; }
       if (st.merging) { setMerging(false); return; }
       close(false);
     });

@@ -9,7 +9,8 @@
   (function () {
     var m = /[?&]locale=([a-zA-Z-]+)/.exec(location.search);
     if (m) {
-      try { localStorage.setItem("revector-locale", m[1].toLowerCase()); } catch (e) {}
+      // Same key i18n.js reads; only English and Arabic exist.
+      try { localStorage.setItem("lang", m[1].toLowerCase() === "ar" ? "ar" : "en"); } catch (e) {}
       var back = document.referrer && document.referrer.indexOf(location.origin) === 0 ? document.referrer : "/";
       location.replace(back);
     }
