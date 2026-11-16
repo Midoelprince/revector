@@ -18,13 +18,18 @@
   const lang = $(".lang");
   if (lang) {
     const btn = $(".lang-toggle", lang);
-    const saved = (() => { try { return localStorage.getItem("revector-locale"); } catch (e) { return null; } })();
-    if (saved) {
-      $$(".lang-menu a", lang).forEach((a) => a.toggleAttribute("aria-current", a.dataset.locale === saved));
-      $$(".lang-menu a[aria-current]", lang).forEach((a) => a.setAttribute("aria-current", "true"));
-      const cur = $('.lang-menu a[aria-current="true"] span:last-child', lang);
-      if (cur) btn.setAttribute("aria-label", "Language: " + cur.textContent);
-    }
+    // i18n.js owns the language (localStorage key "lang"); the menu only mirrors it.
+    const syncLang = () => {
+      const cur = window.getLang ? window.getLang() : "en";
+      $$(".lang-menu a", lang).forEach((a) => {
+        if (a.dataset.locale === cur) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+      const label = $('.lang-menu a[aria-current="true"] span:last-child', lang);
+      if (label) btn.setAttribute("aria-label", "Language: " + label.textContent);
+    };
+    syncLang();
+    window.addEventListener("langchange", () => { syncLang(); lang.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); });
     const setOpen = (o) => { lang.classList.toggle("open", o); btn.setAttribute("aria-expanded", String(o)); };
     btn.addEventListener("click", (e) => { e.stopPropagation(); setOpen(!lang.classList.contains("open")); if (lang.classList.contains("open")) { const c = $('[aria-current="true"]', lang); if (c) c.focus(); } });
     document.addEventListener("click", (e) => { if (!lang.contains(e.target)) setOpen(false); });
@@ -71,48 +76,4 @@
 
   // ---- Mac keyboard hint ----
   if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) $$(".ctl-key").forEach((k) => { k.textContent = "⌘"; });
-
-  // ---- pricing ----
-  const table = $("[data-credits]");
-  if (table) {
-    const rates = { USD: [1, "$"], EUR: [0.92, "€"], GBP: [0.79, "£"], CAD: [1.36, "CA$"], AUD: [1.52, "A$"] };
-    let cur = "USD";
-    const fmt = (v, d) => rates[cur][1] + (v * rates[cur][0]).toFixed(d);
-    const draw = () => {
-      $$("[data-usd]").forEach((el) => {
-        const v = +el.dataset.usd, d = +(el.dataset.dec || 2);
-        el.textContent = fmt(v, d) + (el.dataset.suffix || "");
-      });
-      $("[data-currency-label]").textContent = "Currency: " + cur;
-    };
-    $$("input[name=plan]", table).forEach((r) => r.addEventListener("change", () => {
-      $$("tr", table).forEach((tr) => tr.classList.toggle("sel", tr.contains(r) && r.checked));
-    }));
-    $$("tbody tr", table).forEach((tr) => tr.addEventListener("click", (e) => { const r = $("input", tr); if (r && e.target !== r) { r.checked = true; r.dispatchEvent(new Event("change")); } }));
-    const planForm = $("[data-plan-form]");
-    if (planForm) planForm.addEventListener("submit", (e) => e.preventDefault());
-    const more = $("[data-show-more]");
-    if (more) more.addEventListener("click", () => { const on = table.classList.toggle("show-more"); more.textContent = on ? "Show fewer plans" : "Show more plans"; });
-    const cbox = $(".currency"), cbtn = $(".currency > button");
-    if (cbox && cbtn) {
-      cbtn.addEventListener("click", (e) => { e.stopPropagation(); cbox.classList.toggle("open"); });
-      document.addEventListener("click", () => cbox.classList.remove("open"));
-      $$(".currency-menu button").forEach((b) => b.addEventListener("click", () => { cur = b.dataset.cur; cbox.classList.remove("open"); draw(); }));
-    }
-    draw();
-  }
-
-  // ---- support form ----
-  const form = $("[data-support-form]");
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const msg = $("[data-form-msg]", form);
-      const email = form.email.value.trim(), text = form.message.value.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.className = "form-msg err"; msg.textContent = "Please enter a valid email address."; form.email.focus(); return; }
-      if (text.length < 10) { msg.className = "form-msg err"; msg.textContent = "Please tell us a little more in your message."; form.message.focus(); return; }
-      msg.className = "form-msg";
-      msg.textContent = "Thanks! Your request is ready. This copy of the site isn't connected to a support inbox yet, so nothing was sent.";
-    });
-  }
 })();
