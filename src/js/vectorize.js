@@ -1131,9 +1131,10 @@
   }
 
   // ---------------- geometric primitives ----------------
-  // A closed outline that matches a circle, an ellipse, a rectangle or a rounded rectangle within a
-  // small tolerance is replaced by that exact shape, so a round dot is a true circle and a square
-  // window keeps four straight sides and four sharp corners.
+  // A closed outline that matches a circle, an ellipse, a rectangle, a rounded rectangle, a polygon
+  // (triangle to octagon) or a star (3 to 10 points) within a small tolerance is replaced by that
+  // exact shape, at whatever angle or mirroring it was drawn: a round dot becomes a true circle, a
+  // square window keeps four straight sides, a star keeps every point sharp.
   const KAPPA = 0.5522847498;
   function polyMoments(px, py) {
     const n = px.length;
@@ -1200,6 +1201,152 @@
     arc([hw - r + k, -hh, hw, -hh + r - k, hw, -hh + r]);
     return { kind: r >= Math.min(hw, hh) - 1e-6 ? "capsule" : "rounded-rectangle", start: [hw, -hh + r], segs };
   }
+
+  // Distance from (x, y) to a closed polygon given as [[x, y], ...].
+  function polyDist(V, x, y) {
+    let best = Infinity;
+    for (let i = 0; i < V.length; i++) {
+      const a = V[i], b = V[(i + 1) % V.length];
+      const d = ptSegDistSq(x, y, a[0], a[1], b[0], b[1]);
+      if (d < best) best = d;
+    }
+    return Math.sqrt(best);
+  }
+  function polyArea(V) {
+    let a = 0;
+    for (let i = 0; i < V.length; i++) { const p = V[i], q = V[(i + 1) % V.length]; a += p[0] * q[1] - q[0] * p[1]; }
+    return a / 2;
+  }
+  function polygonShape(V, kind) {
+    return { kind, start: V[0].slice(), segs: V.slice(1).concat([V[0]]).map((p) => ({ l: p.slice() })) };
+  }
+  // Convex hull (monotone chain), counter-clockwise in y-down screen terms does not matter here.
+  function convexHull(px, py) {
+    const pts = [];
+    for (let i = 0; i < px.length; i++) pts.push([px[i], py[i]]);
+    pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], hi = [];
+    for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+    lo.pop(); hi.pop();
+    return lo.concat(hi);
+  }
+  // Best k-gon for a convex outline: shrink the hull to k corners (dropping the corner whose removal
+  // changes the area least), then refit every side as a straight line through the outline points
+  // nearest to it and put each corner where two neighbouring sides cross.
+  function fitPolygon(px, py, hull, k, sc) {
+    let V = hull.map((p) => p.slice());
+    if (V.length < k) return null;
+    const triArea = (a, b, c) => Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2;
+    while (V.length > k) {
+      let bi = 0, ba = Infinity;
+      for (let i = 0; i < V.length; i++) { const a = triArea(V[(i - 1 + V.length) % V.length], V[i], V[(i + 1) % V.length]); if (a < ba) { ba = a; bi = i; } }
+      V.splice(bi, 1);
+    }
+    for (let it = 0; it < 2; it++) {
+      // outline edge midpoints sit on the true edge; corners are left out of the side fits
+      const groups = V.map(() => []);
+      const n = px.length;
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n, x = (px[i] + px[j]) / 2, y = (py[i] + py[j]) / 2;
+        let bs = -1, bd = Infinity;
+        for (let s = 0; s < k; s++) { const a = V[s], b = V[(s + 1) % k]; const d = ptSegDistSq(x, y, a[0], a[1], b[0], b[1]); if (d < bd) { bd = d; bs = s; } }
+        const a = V[bs], b = V[(bs + 1) % k], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const t = L ? ((x - a[0]) * (b[0] - a[0]) + (y - a[1]) * (b[1] - a[1])) / (L * L) : 0;
+        if (t > 0.12 && t < 0.88) groups[bs].push([x, y]);
+      }
+      const lines = [];
+      for (let s = 0; s < k; s++) {
+        const g = groups[s];
+        if (g.length < 2) return null;
+        let mx = 0, my = 0;
+        for (const q of g) { mx += q[0]; my += q[1]; }
+        mx /= g.length; my /= g.length;
+        let sxx = 0, sxy = 0, syy = 0;
+        for (const q of g) { const dx = q[0] - mx, dy = q[1] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+        const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+        lines.push({ mx, my, ux: Math.cos(th), uy: Math.sin(th) });
+      }
+      const NV = [];
+      for (let s = 0; s < k; s++) {
+        const A = lines[(s - 1 + k) % k], B = lines[s];
+        const cr = A.ux * B.uy - A.uy * B.ux;
+        if (Math.abs(cr) < 0.05) return null;
+        const t = ((B.mx - A.mx) * B.uy - (B.my - A.my) * B.ux) / cr;
+        NV.push([A.mx + A.ux * t, A.my + A.uy * t]);
+      }
+      V = NV;
+    }
+    // every side must be a real side, every corner a real corner
+    for (let s = 0; s < k; s++) {
+      const a = V[(s - 1 + k) % k], b = V[s], c = V[(s + 1) % k];
+      if (Math.hypot(c[0] - b[0], c[1] - b[1]) < 3 * sc) return null;
+      const u = [a[0] - b[0], a[1] - b[1]], v = [c[0] - b[0], c[1] - b[1]];
+      const cos = (u[0] * v[0] + u[1] * v[1]) / (Math.hypot(u[0], u[1]) * Math.hypot(v[0], v[1]));
+      if (cos < -0.985) return null; // nearly straight: not a corner
+    }
+    return V;
+  }
+  // A star with n points (3 to 10): the distance from the centre rises and falls n times around the
+  // outline. The strongest such rhythm gives n and the angle of the first point; the point and valley
+  // radii are then tuned to the outline.
+  function fitStar(px, py, M, sc, accept) {
+    const n = px.length, cx = M.cx, cy = M.cy;
+    const BINS = 360, rb = new Float64Array(BINS), hit = new Uint8Array(BINS);
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, x = (px[i] + px[j]) / 2 - cx, y = (py[i] + py[j]) / 2 - cy;
+      const b = Math.floor(((Math.atan2(y, x) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * BINS) % BINS;
+      const r = Math.hypot(x, y);
+      if (r > rb[b]) rb[b] = r;
+      hit[b] = 1;
+    }
+    let filled = 0, mean = 0;
+    for (let b = 0; b < BINS; b++) if (hit[b]) { filled++; mean += rb[b]; }
+    if (filled < BINS * 0.6) return null;
+    mean /= filled;
+    let best = null;
+    for (let k = 3; k <= 10; k++) {
+      let re = 0, im = 0;
+      for (let b = 0; b < BINS; b++) { if (!hit[b]) continue; const t = (b + 0.5) / BINS * Math.PI * 2; re += (rb[b] - mean) * Math.cos(k * t); im -= (rb[b] - mean) * Math.sin(k * t); }
+      const amp = 2 * Math.hypot(re, im) / filled;
+      if (!best || amp > best.amp) best = { k, amp, phase: -Math.atan2(im, re) / k };
+    }
+    if (!best || best.amp < 0.12 * mean) return null;
+    const k = best.k;
+    const radiusNear = (ang, pick) => {
+      let v = pick === "max" ? 0 : Infinity;
+      for (let d = -4; d <= 4; d++) {
+        const b = ((Math.round(((ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * BINS) + d) % BINS + BINS) % BINS;
+        if (!hit[b]) continue;
+        v = pick === "max" ? Math.max(v, rb[b]) : Math.min(v, rb[b]);
+      }
+      return v;
+    };
+    let phi = best.phase, R = 0, r = 0;
+    for (let i = 0; i < k; i++) { R += radiusNear(phi + i * Math.PI * 2 / k, "max"); r += radiusNear(phi + (i + 0.5) * Math.PI * 2 / k, "min"); }
+    R /= k; r /= k;
+    if (!(r > 0) || !isFinite(r) || r / R > 0.86) return null;
+    const build = (phi, R, r) => {
+      const V = [];
+      for (let i = 0; i < 2 * k; i++) { const a = phi + i * Math.PI / k, rr = i % 2 ? r : R; V.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); }
+      return V;
+    };
+    const cost = (V) => { let s = 0; for (let i = 0; i < n; i++) s += polyDist(V, px[i], py[i]); return s / n; };
+    let V = build(phi, R, r), c = cost(V);
+    // small coordinate search on angle and both radii
+    let stepA = Math.PI / k / 20, stepR = 0.04 * R;
+    for (let it = 0; it < 30 && stepR > 0.02 * sc; it++) {
+      let moved = false;
+      for (const [dp, dR, dr] of [[stepA, 0, 0], [-stepA, 0, 0], [0, stepR, 0], [0, -stepR, 0], [0, 0, stepR], [0, 0, -stepR]]) {
+        const W = build(phi + dp, R + dR, r + dr), cw = cost(W);
+        if (cw < c) { c = cw; phi += dp; R += dR; r += dr; V = W; moved = true; }
+      }
+      if (!moved) { stepA /= 2; stepR /= 2; }
+    }
+    const e = accept((x, y) => polyDist(V, x, y));
+    return e < Infinity ? { e, V, k } : null;
+  }
   function fitPrimitive(px, py, settings) {
     const n = px.length, sc = settings.scale || 1;
     if (n < 8 || n > 6000 * sc) return null;
@@ -1243,14 +1390,60 @@
       for (let d = 0; d < 90; d += 1) tryAngle(d * Math.PI / 180);
       const t0 = best.th;
       for (let d = -1; d <= 1; d += 0.1) tryAngle(t0 + d * Math.PI / 180);
-      const { th, x0, x1, y0, y1 } = best, hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
+      const { th, x0, x1, y0, y1 } = best;
+      let hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
       const cs = Math.cos(th), sn = Math.sin(th), ucx = (x0 + x1) / 2, vcy = (y0 + y1) / 2;
       const cx = ucx * cs - vcy * sn, cy = ucx * sn + vcy * cs;
+      // The bounding box of a slanted staircase sits up to ~0.7 px outside the true sides, which
+      // throws an area-based radius off; instead search the inset and corner radius that best
+      // match the outline (a sample of it, for speed).
+      const step = Math.max(1, Math.floor(n / 600));
+      const meanDist = (w2, h2, rr) => { let sm = 0, k = 0; for (let i = 0; i < n; i += step) { const dx = px[i] - cx, dy = py[i] - cy; sm += roundRectDist(dx * cs + dy * sn, -dx * sn + dy * cs, w2, h2, rr); k++; } return sm / k; };
       let r = Math.sqrt(Math.max(0, 4 * hw * hh - M.area) / (4 - Math.PI));
       r = Math.min(r, hw, hh);
+      let bestFit = { d: Infinity, inset: 0, r };
+      for (let inset = 0; inset <= 0.8 * sc; inset += 0.2 * sc) {
+        const w2 = hw - inset, h2 = hh - inset, rmax = Math.min(w2, h2);
+        let lo = 0, hi = rmax;
+        // the mean distance is unimodal in r: narrow it down by thirds
+        for (let it = 0; it < 28; it++) {
+          const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3;
+          if (meanDist(w2, h2, m1) < meanDist(w2, h2, m2)) hi = m2; else lo = m1;
+        }
+        const rr = (lo + hi) / 2, d = meanDist(w2, h2, rr);
+        if (d < bestFit.d) bestFit = { d, inset, r: rr };
+      }
+      hw -= bestFit.inset; hh -= bestFit.inset; r = bestFit.r;
       if (r < 1.0 * sc) r = 0;
       const e = accept((x, y) => { const dx = x - cx, dy = y - cy; return roundRectDist(dx * cs + dy * sn, -dx * sn + dy * cs, hw, hh, r); });
       if (e < Infinity) cands.push({ e, path: () => primitivePath(roundRectSegs(hw, hh, r), cx, cy, th, ccw) });
+    }
+    // polygons: triangle .. octagon, for outlines that are convex
+    if (settings.polygons !== false) {
+      const hull = convexHull(px, py);
+      const hullArea = Math.abs(polyArea(hull));
+      if (hull.length >= 3 && hullArea > 0 && M.area / hullArea > 0.96) {
+        for (let k = 3; k <= 8; k++) {
+          const V = fitPolygon(px, py, hull, k, sc);
+          if (!V) continue;
+          const e = accept((x, y) => polyDist(V, x, y));
+          // the fewest corners that fit wins: a triangle is not also a pentagon
+          if (e < Infinity) {
+            if (Math.sign(polyArea(V)) !== ccw) V.reverse();
+            const kind = k === 3 ? "triangle" : k === 4 ? "quadrilateral" : "polygon-" + k;
+            cands.push({ e: e * 1.02, path: () => polygonShape(V, kind) });
+            break;
+          }
+        }
+      } else if (hull.length >= 3 && hullArea > 0 && M.area / hullArea < 0.9) {
+        // stars: clearly concave outlines with a regular rhythm of points
+        const st = fitStar(px, py, M, sc, accept);
+        if (st) {
+          const V = st.V;
+          if (Math.sign(polyArea(V)) !== ccw) V.reverse();
+          cands.push({ e: st.e, path: () => polygonShape(V, "star-" + st.k) });
+        }
+      }
     }
     if (!cands.length) return null;
     cands.sort((p, q) => p.e - q.e);
