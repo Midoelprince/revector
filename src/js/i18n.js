@@ -382,6 +382,37 @@
   }
   AR["Main"] = "القائمة الرئيسية";
 
+  /* Desktop app: updates and saved files */
+  var DESKTOP_AR = {
+    "Check for Updates": "التحقق من التحديثات",
+    "Checking…": "جارٍ التحقق…",
+    "Current version": "الإصدار الحالي",
+    "Dismiss": "إغلاق",
+    "Download progress": "تقدّم التنزيل",
+    "Update available": "يتوفر تحديث",
+    "You have": "لديك",
+    "Download & Update": "نزّل وحدّث",
+    "Downloading update": "جارٍ تنزيل التحديث",
+    "You can keep working.": "يمكنك متابعة العمل.",
+    "Update ready": "التحديث جاهز",
+    "Restart Revector to finish. Save your work first.": "أعد تشغيل Revector لإكمال التحديث. احفظ عملك أولًا.",
+    "Restart to Apply Update": "أعد التشغيل لتطبيق التحديث",
+    "Checking for updates…": "جارٍ التحقق من التحديثات…",
+    "You're up to date": "لديك أحدث إصدار",
+    "the newest version.": "هو أحدث إصدار.",
+    "Updates aren't available here": "التحديثات غير متاحة هنا",
+    "Updates work in the installed app. This is a development run.": "التحديثات تعمل في التطبيق المثبَّت فقط. هذا تشغيل تجريبي.",
+    "The portable version can't update itself. Download the newest one, or use the installer.": "النسخة المحمولة لا تحدّث نفسها. نزّل أحدث نسخة أو استخدم المثبِّت.",
+    "Couldn't update": "تعذّر التحديث",
+    "Check your internet connection and try again.": "تحقق من اتصالك بالإنترنت ثم حاول مجددًا.",
+    "Try Again": "حاول مجددًا",
+    "File saved": "تم حفظ الملف",
+    "Couldn't save the file": "تعذّر حفظ الملف",
+    "Show in Folder": "إظهار في المجلد",
+    "Open File": "فتح الملف"
+  };
+  for (var dk in DESKTOP_AR) if (Object.prototype.hasOwnProperty.call(DESKTOP_AR, dk)) AR[dk] = DESKTOP_AR[dk];
+
   var EN = {};
   for (var k in AR) if (Object.prototype.hasOwnProperty.call(AR, k)) EN[AR[k]] = k;
 

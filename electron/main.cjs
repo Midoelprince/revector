@@ -4,7 +4,7 @@
 //   so every /assets/... address, the Web Worker and the language switch work
 //   with no internet connection.
 // - Checks for updates on launch and on request (electron-updater).
-const { app, BrowserWindow, Menu, ipcMain, protocol, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, protocol, session, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const pkg = require("../package.json");
@@ -159,6 +159,72 @@ ipcMain.handle("update:install", () => {
   return true;
 });
 
+// ---------- saved files ----------
+// Every download from the page (SVG, PDF, EPS, DXF, PNG) goes through the
+// normal Save dialog. When the file has been written, the page is told so it
+// can show "Saved" with a "Show in Folder" button. The page only ever gets a
+// number back; the real path stays here, so the page can't open other files.
+const savedFiles = new Map();
+let savedCount = 0;
+
+const FILE_TYPES = {
+  ".svg": "SVG image",
+  ".pdf": "PDF document",
+  ".eps": "EPS file",
+  ".dxf": "DXF drawing",
+  ".png": "PNG image"
+};
+
+// The Save dialog opens in the folder used last time (kept between launches).
+function settingsFile() { return path.join(app.getPath("userData"), "settings.json"); }
+function readSettings() {
+  try { return JSON.parse(fs.readFileSync(settingsFile(), "utf8")) || {}; } catch (_) { return {}; }
+}
+function writeSettings(next) {
+  try { fs.writeFileSync(settingsFile(), JSON.stringify(Object.assign(readSettings(), next))); } catch (_) {}
+}
+function saveFolder() {
+  const last = readSettings().saveFolder;
+  try { if (last && fs.statSync(last).isDirectory()) return last; } catch (_) {}
+  return app.getPath("downloads");
+}
+
+function trackDownloads(sess) {
+  sess.on("will-download", (_event, item) => {
+    const name = item.getFilename() || "image";
+    const ext = path.extname(name).toLowerCase();
+    const filters = FILE_TYPES[ext] ? [{ name: FILE_TYPES[ext], extensions: [ext.slice(1)] }] : [];
+    item.setSaveDialogOptions({ defaultPath: path.join(saveFolder(), name), filters: filters });
+    item.once("done", (_doneEvent, outcome) => {
+      if (outcome === "completed" && item.getSavePath()) writeSettings({ saveFolder: path.dirname(item.getSavePath()) });
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      const file = item.getSavePath();
+      if (outcome === "completed" && file) {
+        const id = ++savedCount;
+        savedFiles.set(id, file);
+        if (savedFiles.size > 50) savedFiles.delete(savedFiles.keys().next().value);
+        mainWindow.webContents.send("download:event", { status: "saved", id: id, name: path.basename(file), folder: path.dirname(file) });
+      } else if (outcome === "interrupted") {
+        mainWindow.webContents.send("download:event", { status: "failed", name: item.getFilename() });
+      }
+      // "cancelled": the person closed the Save dialog. Nothing to say.
+    });
+  });
+}
+
+ipcMain.handle("download:reveal", (_event, id) => {
+  const file = savedFiles.get(Number(id));
+  if (!file) return false;
+  if (isFile(file)) shell.showItemInFolder(file);
+  else shell.openPath(path.dirname(file));
+  return true;
+});
+ipcMain.handle("download:open", async (_event, id) => {
+  const file = savedFiles.get(Number(id));
+  if (!file || !isFile(file)) return false;
+  return (await shell.openPath(file)) === "";
+});
+
 // ---------- window ----------
 function openOutside(address) {
   if (/^(https?:|mailto:)/i.test(address)) shell.openExternal(address);
@@ -221,6 +287,7 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform === "win32") app.setAppUserModelId("com.revector.desktop");
     Menu.setApplicationMenu(null); // clean window: no File/Edit/View bar
     protocol.handle(SCHEME, serve);
+    trackDownloads(session.defaultSession);
     createWindow();
 
     // Quiet check a few seconds after launch (installed app only).

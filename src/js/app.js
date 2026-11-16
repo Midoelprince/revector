@@ -669,13 +669,14 @@
         const [ax, ay] = toImg(Math.min(cropStart.x, x2), Math.min(cropStart.y, y2));
         const [bx, by] = toImg(Math.max(cropStart.x, x2), Math.max(cropStart.y, y2));
         cropStart = null; setCrop(false);
+        if (!st.result || !st.orig) return; // still tracing: nothing to crop against yet
         const k = st.orig.width / st.result.width;
         const sx = clamp(Math.round(ax * k), 0, st.orig.width - 1), sy = clamp(Math.round(ay * k), 0, st.orig.height - 1);
         const ex = clamp(Math.round(bx * k), sx + 1, st.orig.width), ey = clamp(Math.round(by * k), sy + 1, st.orig.height);
         if (ex - sx < 4 || ey - sy < 4) return;
         const c = document.createElement("canvas"); c.width = ex - sx; c.height = ey - sy;
         c.getContext("2d").drawImage(st.orig, sx, sy, c.width, c.height, 0, 0, c.width, c.height);
-        setSource(c, st.name + "-cropped.png"); run(true);
+        setSource(c, st.name.replace(/-cropped$/, "") + "-cropped.png"); run(true);
         return;
       }
       pan = null;
@@ -841,7 +842,9 @@
         };
         img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(R.toSVG(st.result, o));
       }
-      if (!askedFeedback) { askedFeedback = true; setTimeout(() => dialog("feedback", true), 900); }
+      // The desktop app shows its own "File saved" popup instead; asking for feedback
+      // there would cover the editor while the Save dialog is still open.
+      if (!askedFeedback && !window.revectorDesktop) { askedFeedback = true; setTimeout(() => dialog("feedback", true), 900); }
     }));
 
     $("[data-app-close]", root).addEventListener("click", () => close(false));
