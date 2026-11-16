@@ -6,6 +6,7 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const T = (s) => (window.t ? window.t(s) : s);
 
   function imageDataOf(canvas) { return canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height); }
 
@@ -216,7 +217,6 @@
       showProgress(0.02, "Preparing…");
       const done = (result) => {
         if (id !== st.job) return;
-        progress.classList.remove("on");
         if (resetPalette || !st.clusters) {
           st.clusters = result.clusters;
           // one cell per color that survived; empty clusters ride along in the first cell
@@ -225,10 +225,10 @@
           used.forEach((k) => st.cells.push({ members: [k], color: result.clusters[k].color, transparent: false }));
           if (!st.cells.length) st.cells.push({ members: [0], color: result.clusters[0].color, transparent: false });
           result.clusters.forEach((c, k) => { if (!c.count) st.cells[0].members.push(k); });
-          st.hidden = new Set();
           // groups of the first trace were cluster ids; trace again with the cell layout
           if (used.length !== result.clusters.length) { run(false); return; }
         }
+        progress.classList.remove("on");
         st.result = result; st.hidden = new Set();
         $("[data-opt=removeBg]", root).checked = bgCell() ? bgCell().transparent : false;
         render(); renderSwatches(); if (resetPalette) fit();
@@ -296,7 +296,7 @@
       const transp = layerTransparent();
       const shown = r.layers.reduce((a, l, li) => a + (transp.has(li) ? 0 : l.shapes.filter((_, si) => !st.hidden.has(li + ":" + si)).length), 0);
       const colorsShown = st.cells.filter((c) => !c.transparent).length;
-      statsEl.innerHTML = `${colorsShown} colors · ${shown} shapes · ${r.stats.nodes} curve segments<br>${st.orig.width} × ${st.orig.height} px${r.width !== st.orig.width ? ` (traced at ${r.width} × ${r.height})` : " · traced at full size"}`;
+      statsEl.innerHTML = `${colorsShown} ${T("colors")} · ${shown} ${T("shapes")} · ${r.stats.nodes} ${T("curve segments")}<br>${st.orig.width} × ${st.orig.height} px${r.width !== st.orig.width ? ` (${T("traced at")} ${r.width} × ${r.height})` : " · " + T("traced at full size")}`;
       applyView();
     }
 
@@ -321,7 +321,7 @@
         sw.style.background = swatchBackground(cell);
         sw.draggable = true; sw.dataset.cell = ci;
         const members = cell.members.filter((k) => st.clusters[k].count > 0).length;
-        sw.title = `Color ${ci + 1}: ${cell.transparent ? "transparent" : cell.color}${members > 1 ? ` (${members} colors merged)` : ""}`;
+        sw.title = `${T("Color")} ${ci + 1}: ${cell.transparent ? T("transparent") : cell.color}${members > 1 ? ` (${members} ${T("colors merged")})` : ""}`;
         sw.setAttribute("aria-label", sw.title);
         if (members > 1) { const b = document.createElement("span"); b.className = "swatch-badge"; b.textContent = members; sw.appendChild(b); }
         sw.addEventListener("click", (e) => {
@@ -378,7 +378,7 @@
       popCell = ci;
       const cell = st.cells[ci];
       const real = cell.members.filter((k) => st.clusters[k].count > 0);
-      $("[data-pop-title]", pop).textContent = `Color ${ci + 1}` + (real.length > 1 ? ` · ${real.length} merged` : "");
+      $("[data-pop-title]", pop).textContent = `${T("Color")} ${ci + 1}` + (real.length > 1 ? ` · ${real.length} ${T("merged")}` : "");
       setPicker(cell.color, true);
       const tb = $("[data-pop-transparent]", pop);
       tb.setAttribute("aria-pressed", cell.transparent ? "true" : "false");
@@ -483,7 +483,7 @@
       st.merging = on;
       if (!on) st.selected.clear();
       $("[data-merge-toggle]", root).setAttribute("aria-pressed", on ? "true" : "false");
-      $("[data-merge-toggle]", root).textContent = on ? "Cancel merge" : "Merge colors";
+      $("[data-merge-toggle]", root).textContent = T(on ? "Cancel merge" : "Merge colors");
       swatches.classList.toggle("is-merging", on);
       renderSwatches();
     }
@@ -491,7 +491,7 @@
       const btn = $("[data-merge-apply]", root);
       mergeBar.hidden = !st.merging;
       btn.disabled = st.selected.size < 2;
-      btn.textContent = st.selected.size < 2 ? "Pick 2 or more colors" : `Merge ${st.selected.size} colors`;
+      btn.textContent = st.selected.size < 2 ? T("Pick 2 or more colors") : `${T("Merge colors")} (${st.selected.size})`;
     }
     $("[data-merge-toggle]", root).addEventListener("click", (e) => { e.stopPropagation(); closePop(); setMerging(!st.merging); });
     $("[data-merge-apply]", root).addEventListener("click", (e) => { e.stopPropagation(); if (st.selected.size >= 2) mergeCells(Array.from(st.selected)); });
@@ -525,24 +525,9 @@
         const t = document.createElement("canvas");
         t.width = Math.max(1, Math.round(canvas.width * sc)); t.height = Math.max(1, Math.round(canvas.height * sc));
         const c = t.getContext("2d"); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high"; c.drawImage(canvas, 0, 0, t.width, t.height);
-        if (sc > 1) {
-          // Upscaling: sharpen edges a little (unsharp mask) so traced curves stay crisp.
-          try {
-            const b = document.createElement("canvas"); b.width = t.width; b.height = t.height;
-            const bc = b.getContext("2d"); bc.filter = "blur(1px)"; bc.drawImage(t, 0, 0);
-            const o = c.getImageData(0, 0, t.width, t.height), bl = bc.getImageData(0, 0, t.width, t.height).data, d = o.data;
-            for (let i = 0; i < d.length; i += 4) {
-              for (let k = 0; k < 3; k++) {
-                const diff = d[i + k] - bl[i + k];
-                if (diff > 8 || diff < -8) { const v = d[i + k] + 0.6 * diff; d[i + k] = v < 0 ? 0 : v > 255 ? 255 : v; }
-              }
-            }
-            c.putImageData(o, 0, 0);
-          } catch (e) { /* sharpening is optional */ }
-        }
         st.trace = t;
       }
-      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; binC.getContext("2d").drawImage(st.rawTrace, 0, 0); if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); st.trace = binC;
+      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
       st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null;
       fileEl.textContent = `${name || "image"}  ·  ${canvas.width} × ${canvas.height}`;
     }
@@ -562,8 +547,8 @@
 
     async function openFile(file) {
       if (!file) return;
-      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|bmp|webp)$/i.test(file.name || "")) { status("That file isn't a picture. Try PNG, JPG, GIF, BMP or WebP."); return; }
-      status("Loading " + (file.name || "image") + "…");
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|bmp|webp)$/i.test(file.name || "")) { status(T("That file isn't a picture. Try PNG, JPG, GIF, BMP or WebP.")); return; }
+      status(T("Loading") + " " + (file.name || "image") + "…");
       try {
         let bmp;
         try { bmp = await createImageBitmap(file); }
@@ -572,7 +557,7 @@
         c.getContext("2d").drawImage(bmp, 0, 0);
         status("");
         openCanvas(c, file.name || "pasted-image.png");
-      } catch (e) { status("Sorry, that picture couldn't be opened."); }
+      } catch (e) { status(T("Sorry, that picture couldn't be opened.")); }
     }
 
     // ---- inputs: pick, drop, paste ----
@@ -669,7 +654,7 @@
     });
     canvasEl.addEventListener("pointercancel", () => { pan = null; seamDrag = false; cropStart = null; cropBox.style.display = "none"; canvasEl.classList.remove("dragging"); });
 
-    function setCrop(on) { st.crop = on; $("[data-crop]", root).textContent = on ? "Drag a box…" : "Crop"; canvasEl.style.cursor = on ? "crosshair" : ""; }
+    function setCrop(on) { st.crop = on; $("[data-crop]", root).textContent = T(on ? "Drag a box…" : "Crop"); canvasEl.style.cursor = on ? "crosshair" : ""; }
     $("[data-crop]", root).addEventListener("click", () => setCrop(!st.crop));
     $("[data-reset]", root).addEventListener("click", () => { st.hidden = new Set(); if (st.result) { run(true); } });
 

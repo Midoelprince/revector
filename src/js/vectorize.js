@@ -111,7 +111,8 @@
       if (between > maxVar) { maxVar = between; otsuT = t; }
     }
     const T = Math.max(24, Math.min(180, otsuT));
-    const isMonochrome = forceBW || (opaquePixels > 0 && (chromaPixels / opaquePixels) < 0.08);
+    // a small coloured accent (a dot on a logo) must survive, so only near-zero chroma counts as monochrome
+    const isMonochrome = forceBW || (opaquePixels > 0 && chromaPixels < Math.max(24, opaquePixels * 0.01));
 
     if (isMonochrome) {
       // Strict Black & White (or two-tone solid foreground/background) hard binarization
@@ -201,6 +202,156 @@
     binarizeImageData(imgData, opts);
     ctx.putImageData(imgData, 0, 0);
     return dstCanvas;
+  }
+
+  // ---------------- local edge reconstruction (small pictures) ----------------
+  // Pictures smaller than RECON_MAX on their longest side are rebuilt at RECON_SCALE x before
+  // tracing: bilateral denoise -> Otsu snap (binarizeImageData) -> clustering -> per-color signed
+  // distance fields, smoothed without letting any source pixel change color, interpolated at 4x.
+  const RECON_MAX = 800, RECON_SCALE = 4;
+  // Fitting at 4x: the 1/4 keeps the per-source-pixel tolerance; the SDF already removed staircases.
+  const RECON_ERR = 0.25;
+
+  function bilateralFilter(src, w, h, radius, sigmaS, sigmaR) {
+    const out = new Uint8ClampedArray(src);
+    const taps = [];
+    for (let dy = -radius; dy <= radius; dy++) for (let dx = -radius; dx <= radius; dx++) taps.push(dx, dy, Math.exp(-(dx * dx + dy * dy) / (2 * sigmaS * sigmaS)));
+    const range = new Float32Array((3 * 255 * 255 >> 4) + 1);
+    for (let i = 0; i < range.length; i++) range[i] = Math.exp(-(i << 4) / (2 * sigmaR * sigmaR));
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const c = (y * w + x) * 4;
+        if (src[c + 3] < 128) continue;
+        const r0 = src[c], g0 = src[c + 1], b0 = src[c + 2];
+        let sr = 0, sg = 0, sb = 0, sw = 0;
+        for (let t = 0; t < taps.length; t += 3) {
+          const nx = x + taps[t], ny = y + taps[t + 1];
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          const p = (ny * w + nx) * 4;
+          if (src[p + 3] < 128) continue;
+          const dr = src[p] - r0, dg = src[p + 1] - g0, db = src[p + 2] - b0;
+          const wt = taps[t + 2] * range[(dr * dr + dg * dg + db * db) >> 4];
+          sr += src[p] * wt; sg += src[p + 1] * wt; sb += src[p + 2] * wt; sw += wt;
+        }
+        out[c] = sr / sw; out[c + 1] = sg / sw; out[c + 2] = sb / sw;
+      }
+    }
+    return out;
+  }
+
+  // Squared Euclidean distance transform (Felzenszwalb & Huttenlocher), in place on f (0 = feature).
+  const EDT_INF = 1e20;
+  function edt1d(f, n, d, v, z) {
+    let k = 0; v[0] = 0; z[0] = -EDT_INF; z[1] = EDT_INF;
+    for (let q = 1; q < n; q++) {
+      let s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
+      while (s <= z[k]) { k--; s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
+      k++; v[k] = q; z[k] = s; z[k + 1] = EDT_INF;
+    }
+    k = 0;
+    for (let q = 0; q < n; q++) { while (z[k + 1] < q) k++; d[q] = (q - v[k]) * (q - v[k]) + f[v[k]]; }
+  }
+  function edt2d(f, w, h) {
+    const m = Math.max(w, h), line = new Float64Array(m), d = new Float64Array(m), v = new Int32Array(m), z = new Float64Array(m + 1);
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < h; y++) line[y] = f[y * w + x];
+      edt1d(line, h, d, v, z);
+      for (let y = 0; y < h; y++) f[y * w + x] = d[y];
+    }
+    for (let y = 0; y < h; y++) {
+      const o = y * w;
+      for (let x = 0; x < w; x++) line[x] = f[o + x];
+      edt1d(line, w, d, v, z);
+      for (let x = 0; x < w; x++) f[o + x] = d[x];
+    }
+  }
+
+  // Signed distance (in source pixels, + inside) of one color within a padded box, Gaussian-smoothed,
+  // then clamped so every source pixel keeps its own sign: thin strokes and single pixels survive.
+  const SDF_SIGMA = 1.0;
+  const SDF_CLAMP = 3.5, SDF_EPS = 0.05;
+  function colorSdf(labels, w, h, lab, box) {
+    const [x0, y0, x1, y1] = box, bw = x1 - x0, bh = y1 - y0, m = bw * bh;
+    const fin = new Float64Array(m), fout = new Float64Array(m);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      const on = labels[(y + y0) * w + x + x0] === lab, i = y * bw + x;
+      fin[i] = on ? EDT_INF : 0; fout[i] = on ? 0 : EDT_INF;
+    }
+    edt2d(fin, bw, bh); edt2d(fout, bw, bh);
+    const s = new Float32Array(m);
+    for (let i = 0; i < m; i++) {
+      const v = fout[i] === 0 ? Math.sqrt(fin[i]) - 0.5 : 0.5 - Math.sqrt(fout[i]);
+      s[i] = v > SDF_CLAMP ? SDF_CLAMP : v < -SDF_CLAMP ? -SDF_CLAMP : v;
+    }
+    const rad = Math.ceil(SDF_SIGMA * 2), k = [];
+    let ks = 0;
+    for (let t = -rad; t <= rad; t++) { const g = Math.exp(-t * t / (2 * SDF_SIGMA * SDF_SIGMA)); k.push(g); ks += g; }
+    for (let t = 0; t < k.length; t++) k[t] /= ks;
+    const tmp = new Float32Array(m), sm = new Float32Array(m);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      let a = 0;
+      for (let t = -rad; t <= rad; t++) { const xx = Math.min(bw - 1, Math.max(0, x + t)); a += s[y * bw + xx] * k[t + rad]; }
+      tmp[y * bw + x] = a;
+    }
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      let a = 0;
+      for (let t = -rad; t <= rad; t++) { const yy = Math.min(bh - 1, Math.max(0, y + t)); a += tmp[yy * bw + x] * k[t + rad]; }
+      const i = y * bw + x;
+      sm[i] = fout[i] === 0 ? Math.max(a, SDF_EPS) : Math.min(a, -SDF_EPS);
+    }
+    return sm;
+  }
+
+  // Rebuilds a label map at S x: each output pixel takes the color whose smoothed distance field,
+  // bilinearly interpolated, is highest there.
+  function reconstructLabels(labels, w, h, S) {
+    const W = w * S, H = h * S, out = new Uint8Array(W * H);
+    const boxes = new Map();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const l = labels[y * w + x];
+      let b = boxes.get(l);
+      if (!b) { b = [x, y, x, y]; boxes.set(l, b); }
+      if (x < b[0]) b[0] = x; if (x > b[2]) b[2] = x; if (y < b[1]) b[1] = y; if (y > b[3]) b[3] = y;
+    }
+    const pad = 6, fields = new Map();
+    if (boxes.size > 1) boxes.forEach((b, l) => {
+      const box = [Math.max(0, b[0] - pad), Math.max(0, b[1] - pad), Math.min(w, b[2] + pad + 1), Math.min(h, b[3] + pad + 1)];
+      fields.set(l, { box, s: colorSdf(labels, w, h, l, box) });
+    });
+    const at = (l, x, y) => {
+      const F = fields.get(l), [x0, y0, x1, y1] = F.box;
+      if (x < x0 || y < y0 || x >= x1 || y >= y1) return -SDF_CLAMP;
+      return F.s[(y - y0) * (x1 - x0) + x - x0];
+    };
+    const cand = [0, 0, 0, 0];
+    for (let Y = 0; Y < H; Y++) {
+      const v = (Y + 0.5) / S - 0.5, yA = Math.max(0, Math.floor(v)), yB = Math.min(h - 1, Math.floor(v) + 1), fy = v < 0 ? 0 : Math.min(1, v - Math.floor(v));
+      for (let X = 0; X < W; X++) {
+        const u = (X + 0.5) / S - 0.5, xA = Math.max(0, Math.floor(u)), xB = Math.min(w - 1, Math.floor(u) + 1), fx = u < 0 ? 0 : Math.min(1, u - Math.floor(u));
+        const l00 = labels[yA * w + xA], l10 = labels[yA * w + xB], l01 = labels[yB * w + xA], l11 = labels[yB * w + xB];
+        if (l00 === l10 && l00 === l01 && l00 === l11) { out[Y * W + X] = l00; continue; }
+        cand[0] = l00; let nc = 1;
+        if (l10 !== l00) cand[nc++] = l10;
+        if (l01 !== l00 && l01 !== l10) cand[nc++] = l01;
+        if (l11 !== l00 && l11 !== l10 && l11 !== l01) cand[nc++] = l11;
+        let best = l00, bv = -Infinity;
+        for (let i = 0; i < nc; i++) {
+          const l = cand[i];
+          const val = (at(l, xA, yA) * (1 - fx) + at(l, xB, yA) * fx) * (1 - fy) + (at(l, xA, yB) * (1 - fx) + at(l, xB, yB) * fx) * fy;
+          if (val > bv) { bv = val; best = l; }
+        }
+        out[Y * W + X] = best;
+      }
+    }
+    return out;
+  }
+
+  function scaleShapes(shapes, k) {
+    const pt = (p) => [p[0] * k, p[1] * k];
+    return shapes.map((s) => Object.assign({}, s, {
+      area: s.area * k * k,
+      contours: s.contours.map((c) => ({ start: pt(c.start), segs: c.segs.map((g) => g.l ? { l: pt(g.l) } : { c: g.c.map((v) => v * k) }) }))
+    }));
   }
 
   // ---------------- 1. edge-preserving smoothing ----------------
@@ -640,7 +791,8 @@
   function findCorners(px, py, n, closed, settings) {
     const isC = new Uint8Array(n);
     if (n < 3) return isC;
-    const extra = closed ? (n < 40 ? 38 : n < 90 ? 22 : n < 160 ? 10 : 0) : (n < 12 ? 25 : 0);
+    const ns = n / (settings.scale || 1);
+    const extra = closed ? (ns < 40 ? 38 : ns < 90 ? 22 : ns < 160 ? 10 : 0) : (ns < 12 ? 25 : 0);
     const thr = Math.cos(Math.min(170, settings.cornerDeg + extra) * Math.PI / 180);
     const tipThr = Math.cos(Math.min(175, Math.max(settings.cornerDeg + extra, 112)) * Math.PI / 180);
     const kBig = n < 20 ? 2 : n < 60 ? 3 : 4;
@@ -790,7 +942,8 @@
   function postSimplifySegs(start, segs, closed, settings) {
     if (!segs || !segs.length) return { start, segs };
     const aggressive = !!(settings && settings.iconLogoMode);
-    const lineTolSq = aggressive ? 0.36 : 0.09;
+    const sc = (settings && settings.scale) || 1;
+    const lineTolSq = (aggressive ? 0.36 : 0.09) * sc * sc;
     const mergeErr = (settings ? settings.err : 0.25) * (aggressive ? 1.85 : 1.15);
 
     // Pass 1: convert nearly straight cubics to lines and drop zero-length steps
@@ -923,6 +1076,7 @@
     if (!closed) { cidx.push(0); for (let i = 1; i < n - 1; i++) if (corners[i]) cidx.push(i); cidx.push(n - 1); }
     else for (let i = 0; i < n; i++) if (corners[i]) cidx.push(i);
     const smooth = Math.max(0, settings.smooth - 1);
+    // kept in grid units on purpose: scaling it with the 4x reconstruction measured worse (0.29 vs 0.25 px)
     const dpTol = settings.iconLogoMode ? 0.55 : 0.25;
 
     if (closed && !cidx.length) {
@@ -1037,7 +1191,7 @@
           if (ch.closed) { pxs = new Float64Array(m); pys = new Float64Array(m); for (let i = 0; i < m; i++) { pxs[i] = vx(seq[i]); pys[i] = vy(seq[i]); } }
           else { pxs = new Float64Array(m + 1); pys = new Float64Array(m + 1); for (let i = 0; i <= m; i++) { pxs[i] = vx(seq[i]); pys[i] = vy(seq[i]); } }
           // v2: a loop that is entirely a small shape (one closed chain) gets the smoother fit
-          f = fitPolyline(pxs, pys, ch.closed, (ch.closed && settings.small && Math.abs(area) / 2 < SMALL_AREA) ? settings.small : settings);
+          f = fitPolyline(pxs, pys, ch.closed, (ch.closed && settings.small && Math.abs(area) / 2 < SMALL_AREA * settings.scale * settings.scale) ? settings.small : settings);
           if (ch.closed) f = { start: f.start, segs: f.segs, closed: true };
           fitted.set(key, f);
           nodes += f.segs.length;
@@ -1084,7 +1238,7 @@
         let area = 0;
         for (let i = 0; i < len; i++) { pxs[i] = buf[i] % W; pys[i] = (buf[i] / W) | 0; }
         for (let i = 0; i < len; i++) { const j = (i + 1) % len; area += pxs[i] * pys[j] - pxs[j] * pys[i]; }
-        const f = fitPolyline(pxs, pys, true, (settings.small && Math.abs(area) / 2 < SMALL_AREA) ? settings.small : settings);
+        const f = fitPolyline(pxs, pys, true, (settings.small && Math.abs(area) / 2 < SMALL_AREA * settings.scale * settings.scale) ? settings.small : settings);
         nodes += f.segs.length;
         let sh = shapes.get(cid);
         if (!sh) { sh = { contours: [], area: 0 }; shapes.set(cid, sh); }
@@ -1109,16 +1263,16 @@
     const w = img.width, h = img.height, n = w * h;
     const data = img.data;
     const quantCache = new Map();
-    let comp = null, queue = null;
+    let comp = null, queue = null, hiComp = null, hiQueue = null, reconCache = null;
 
-    function quant(opts, say) {
+    function quant(opts, say, recon) {
       const binFlag = opts.iconLogoMode !== false ? 1 : 0;
-      const key = (opts.centers ? "c:" + opts.centers.map((c) => c.map((v) => v.toFixed(2)).join(",")).join(";") : "k:" + (opts.colors | 0)) + ":b" + binFlag;
+      const key = (opts.centers ? "c:" + opts.centers.map((c) => c.map((v) => v.toFixed(2)).join(",")).join(";") : "k:" + (opts.colors | 0)) + ":b" + binFlag + ":r" + (recon ? 1 : 0);
       if (quantCache.has(key)) return quantCache.get(key);
       say(0.04, "Binarizing & smoothing edges…");
-      let srcData = data;
+      let srcData = recon ? bilateralFilter(data, w, h, 2, 1.5, 28) : data;
       if (!img.__binarized && opts.iconLogoMode !== false) {
-        const copy = new Uint8ClampedArray(data);
+        const copy = new Uint8ClampedArray(srcData);
         binarizeImageData({ width: w, height: h, data: copy }, opts);
         srcData = copy;
       }
@@ -1144,16 +1298,18 @@
       say(0.25, "Cleaning edges…"); edgeVote(labels, filtered, w, h, centers, 2);
       const counts = new Array(centers.length).fill(0);
       for (let i = 0; i < n; i++) if (labels[i] !== TRANSPARENT) counts[labels[i]]++;
-      const q = { centers, labels, counts };
+      const q = { centers, labels, counts, key };
       quantCache.clear();
       quantCache.set(key, q);
       return q;
     }
 
     function trace(options, progress) {
-      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true, groups: null, transparent: [] }, options || {});
+      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true, reconstruct: true, groups: null, transparent: [] }, options || {});
       const say = progress || function () {};
-      const q = quant(opts, say);
+      const recon = opts.reconstruct !== false && Math.max(w, h) < RECON_MAX && w > 1 && h > 1;
+      const S = recon ? RECON_SCALE : 1;
+      const q = quant(opts, say, recon);
       const K = q.centers.length;
       const groupOf = opts.groups && opts.groups.length === K ? opts.groups : q.centers.map((_, i) => i);
       const G = Math.max(0, ...groupOf) + 1;
@@ -1189,24 +1345,41 @@
       let bgCluster = -1, bcv = 0;
       bcount.forEach((v, i) => { if (v > bcv) { bcv = v; bgCluster = i; } });
 
+      let tl = labels, tw = w, th = h, tc = comp, tq = queue;
+      if (recon) {
+        tw = w * S; th = h * S;
+        if (!hiComp || hiComp.length !== tw * th) { hiComp = new Int32Array(tw * th); hiQueue = new Int32Array(tw * th); }
+        tc = hiComp; tq = hiQueue;
+        // the 4x map depends only on the source labels, so slider changes reuse it
+        const reconKey = q.key + "|" + groupOf.join(",") + "|" + (stacked ? Array.from(transparent).join(",") : "") + "|" + det.minArea;
+        if (reconCache && reconCache.key === reconKey) tl = reconCache.labels;
+        else {
+          say(0.34, "Reconstructing edges…");
+          tl = reconstructLabels(labels, w, h, S);
+          removeSpecks(tl, tw, th, (S * S) >> 1, tc, tq);
+          reconCache = { key: reconKey, labels: tl };
+        }
+      }
+
       const counts = new Array(G).fill(0);
-      for (let i = 0; i < n; i++) if (labels[i] !== TRANSPARENT) counts[labels[i]]++;
+      for (let i = 0; i < tl.length; i++) if (tl[i] !== TRANSPARENT) counts[tl[i]]++;
+      if (S > 1) for (let g = 0; g < G; g++) counts[g] = counts[g] ? Math.max(1, Math.round(counts[g] / (S * S))) : 0;
       const order = counts.map((c, i) => i).filter((i) => counts[i] > 0).sort((a, b) => counts[b] - counts[a]);
       const smoothMode = !!opts.iconLogoMode;
-      const baseErr = det.err * det.err * (smoothMode ? 2.25 : 1);
+      const baseErr = det.err * det.err * (smoothMode ? 2.25 : 1) * (recon ? S * S * RECON_ERR : 1);
       const baseSmooth = det.smooth + (smoothMode ? 2 : 0);
-      const settings = { err: baseErr, smooth: baseSmooth, cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode };
+      const settings = { err: baseErr, smooth: baseSmooth, cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S };
       // v2: small shapes get a looser, smoother fit with fewer corners
-      settings.small = { err: settings.err * 4, smooth: settings.smooth + 2, cornerDeg: Math.min(150, Math.max(settings.cornerDeg + 30, 100)), iconLogoMode: smoothMode };
+      settings.small = { err: settings.err * 4, smooth: settings.smooth + 2, cornerDeg: Math.min(150, Math.max(settings.cornerDeg + 30, 100)), iconLogoMode: smoothMode, scale: S };
 
       let layers = [], nodes = 0;
       if (stacked) {
-        const r = traceStacked(labels, w, h, order, settings, comp, queue, say);
+        const r = traceStacked(tl, tw, th, order, settings, tc, tq, say);
         nodes = r.nodes;
         layers = r.layers.map((L) => ({ group: L.label, color: hex(gcolor[L.label]), transparent: false, shapes: L.shapes }));
       } else {
         say(0.45, "Tracing shared borders…");
-        const r = traceCutouts(labels, w, h, settings, comp, queue, say);
+        const r = traceCutouts(tl, tw, th, settings, tc, tq, say);
         nodes = r.nodes;
         const byLabel = new Map();
         r.shapes.forEach((s) => {
@@ -1219,6 +1392,7 @@
           shapes: byLabel.get(g).sort((a, b) => b.area - a.area)
         }));
       }
+      if (S > 1) layers.forEach((L) => { L.shapes = scaleShapes(L.shapes, 1 / S); });
       say(1, "Done");
       const shapesTotal = layers.reduce((a, L) => a + (L.transparent ? 0 : L.shapes.length), 0);
       return {
@@ -1284,9 +1458,8 @@
   }
 
   function rgb01(hx) { return [1, 3, 5].map((i) => parseInt(hx.substr(i, 2), 16) / 255); }
-  function psPath(shape, s, H, ops, sy) {
+  function psPath(shape, s, H, ops, sy, W) {
     sy = sy || s;
-    const W = shape.__W;
     const X = (v) => f(Math.min(Math.max(v * s, 0), W === undefined ? Infinity : W));
     const Y = (v) => f(Math.min(Math.max(H - v * sy, 0), H));
     let out = "";
@@ -1306,9 +1479,8 @@
     let content = "";
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
-      it.shape.__W = W;
       content += `${f(r)} ${f(g)} ${f(b)} rg\n`;
-      content += psPath(it.shape, s, H, { m: "m", l: "l", c: "c", h: "h" }, sy);
+      content += psPath(it.shape, s, H, { m: "m", l: "l", c: "c", h: "h" }, sy, W);
       content += "f*\n";
     }
     const objs = [
@@ -1331,9 +1503,8 @@
     let ps = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${Math.round(W)} ${Math.round(H)}\n%%HiResBoundingBox: 0 0 ${W.toFixed(4)} ${H.toFixed(4)}\n%%Creator: Revector\n%%Pages: 1\n%%LanguageLevel: 2\n%%EndComments\n%%EndProlog\n%%Page: 1 1\n`;
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
-      it.shape.__W = W;
       ps += `${f(r)} ${f(g)} ${f(b)} setrgbcolor newpath\n`;
-      ps += psPath(it.shape, s, H, { m: "moveto", l: "lineto", c: "curveto", h: "closepath" }, sy);
+      ps += psPath(it.shape, s, H, { m: "moveto", l: "lineto", c: "curveto", h: "closepath" }, sy, W);
       ps += "eofill\n";
     }
     return sanitizeExport(ps + "showpage\n%%Trailer\n%%EOF\n", "eps");

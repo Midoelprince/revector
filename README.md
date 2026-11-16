@@ -8,9 +8,10 @@ Turn blurry, pixelated images (PNG, JPG, WebP) into crisp, resolution-independen
 
 *   **✅ Private by Design:** All processing happens offline. No uploads. No accounts required.
 *   **⚡️ Fully Automatic Tracing:** Detailed level detection is managed automatically, with manual controls for expert tuning.
+*   **🧠 Local Edge Reconstruction (1.1.0):** Pictures under 800 px are rebuilt at 4x before tracing — bilateral denoising, Otsu snapping of blurred edge pixels, and signed-distance-field interpolation of every colour region — so pixel staircases and anti-aliasing halos vanish and round shapes become true Bézier curves. No model download, no API key, no configuration.
 *   **🖼️ Universal Input:** Supports PNG, JPG, and WebP (up to 4096 pixels).
 *   **📐 Real Vector Output:** Downloads standards-compliant SVG, EPS, PDF, and DXF files that scale perfectly.
-*   **🌐 Multi-Lingual:** Supports Arabic & English UI.
+*   **🌐 Multi-Lingual:** Supports Arabic & English UI; the switcher in the top bar flips the whole interface, including the converter, to a right-to-left layout.
 
 ***
 
@@ -55,7 +56,9 @@ npm run build
 # 2. Package the Electron desktop app with electron-builder
 npm run dist
 ```
-This command outputs the installer (`Revector-Setup-<version>.exe`) and portable executable (`Revector-Portable-<version>.exe`) into the `/release` folder.
+This command outputs the installer (`Revector-Setup-<version>.exe`), the portable executable (`Revector-Portable-<version>.exe`), the `.blockmap` and `latest.yml` into the `/release` folder.
+
+On Linux the packager needs Wine with 32-bit support and a display: `apt install wine32 xvfb`, then `xvfb-run -a npm run dist`.
 
 ***
 
@@ -65,9 +68,9 @@ This command outputs the installer (`Revector-Setup-<version>.exe`) and portable
 If the conversion fails, check the **Confidence Score**. Low scores indicate the image complexity exceeds the automated detection capabilities. Use the manual controls provided in the GUI to refine the tracing process.
 
 **⚙️ Development Deep Dive**
-*   The core vectorizer logic resides in `src/js/vectorizer.js`.
-*   The desktop application shell is managed by `electron/main.js` and `electron/preload.js`.
-*   For advanced integration, see the `/API` page for endpoint specifications.
+*   The core vectorizer logic resides in `src/js/vectorize.js`; `src/js/worker.js` runs it off the main thread.
+*   The desktop application shell is managed by `electron/main.cjs` and `electron/preload.cjs`.
+*   `src/pages/` holds the site pages (home and set-locale), `build.mjs` renders them into `dist/`, and `features.mjs` supplies the feature cards.
 
 ## 📜 License
 This project is released under the MIT License. See the `LICENSE` file for details.

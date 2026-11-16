@@ -1,6 +1,6 @@
 {
   "name": "revector-site",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "repository": "https://github.com/Midoelprince/revector",
   "description": "Revector: an image to vector converter that runs on your own computer.",

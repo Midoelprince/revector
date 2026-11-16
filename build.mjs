@@ -31,11 +31,7 @@ const logo = `<svg viewBox="0 0 34 34" aria-hidden="true" focusable="false"><pat
 
 const langIcon = `<svg viewBox="0 0 26 23" aria-hidden="true" focusable="false"><path d="M5 1.5h16a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4h-9l-5 3.5v-3.5H5a4 4 0 0 1-4-4v-9a4 4 0 0 1 4-4Z" fill="currentColor"/><g fill="none" stroke="#fff" stroke-width="1.2"><circle cx="13" cy="10" r="5.6"/><path d="M7.4 10h11.2M13 4.4c-2.6 3-2.6 8.2 0 11.2M13 4.4c2.6 3 2.6 8.2 0 11.2"/></g></svg>`;
 
-const languages = [
-  ["EN", "English"], ["DE", "Deutsch"], ["ES", "español"], ["FR", "français"], ["HI", "हिन्दी"],
-  ["ID", "Indonesia"], ["IT", "italiano"], ["JA", "日本語"], ["KO", "한국어"], ["PL", "polski"],
-  ["PT", "português"], ["RU", "русский"], ["TR", "Türkçe"], ["VI", "Tiếng Việt"], ["ZH", "中文"]
-];
+const languages = [["EN", "English"], ["AR", "العربية"]];
 
 function seeded(seed) {
   let s = seed >>> 0;
@@ -87,9 +83,9 @@ function nav(active) {
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="#12182b" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       <div class="nav-menu" id="nav-menu">
         <ul class="nav-links">
-          ${link("/api", "Developers", "api")}
-          ${link("/pricing", "Pricing", "pricing")}
-          ${link("/support", "Support", "support")}
+          ${link("/#how-title", "How It Works", "how")}
+          ${link("/#features-title", "Features", "features")}
+          ${link("/#faq-title", "FAQ", "faq")}
         </ul>
         <div class="nav-account">
           <button type="button" class="nav-link lang-ar" data-lang-switch>العربية</button>
@@ -114,8 +110,8 @@ function footer() {
         <a class="brand" href="/">${logo}<span>${BRAND}</span></a>
         <p class="signature">Traced with care by a very meticulous robot.</p><hr class="signature-rule">
       </div>
-      <div><h2>Product</h2><ul><li><a href="/pricing">Pricing</a></li><li><a href="/api">Developers</a></li><li><a href="/support">Support</a></li></ul></div>
-      <div><h2>Company</h2><ul><li><a href="/support#about">About</a></li><li><a href="/support#terms">Terms</a></li><li><a href="/support#privacy">Privacy</a></li></ul></div>
+      <div><h2>Product</h2><ul><li><a href="/#how-title">How It Works</a></li><li><a href="/#features-title">Features</a></li><li><a href="/#faq-title">FAQ</a></li></ul></div>
+      <div><h2>Company</h2><ul><li><a href="https://github.com/Midoelprince/revector">Source code</a></li><li><a href="https://github.com/Midoelprince/revector/releases">Releases</a></li><li><a href="https://github.com/Midoelprince/revector/blob/main/LICENSE">License</a></li></ul></div>
       <div><h2>Converters</h2><ul><li><a href="/#convert" data-open-upload>Convert PNG to SVG</a></li><li><a href="/#convert" data-open-upload>Convert JPG to SVG</a></li></ul></div>
     </div>
     
@@ -179,11 +175,10 @@ function write(rel, html) {
 }
 
 const pages = [
-  { out: "index.html", src: "index.html", active: "home", title: `Image to Vector Converter | Turn PNG, JPG & WebP into SVG, PDF, EPS, DXF - ${BRAND}`, description: "Turn pixel images into clean, scalable vector artwork on your own computer, offline. Free preview, download SVG, PDF, EPS, DXF or PNG.", scripts: ["/assets/js/vectorize.js", "/assets/js/examples.js", "/assets/js/app.js"] },
-  { out: "api/index.html", src: "api.html", active: "api", title: `Developers - ${BRAND}`, description: `Automate image vectorization with the ${BRAND} SDKs, command line tool and HTTP API.` },
-  { out: "pricing/index.html", src: "pricing.html", active: "pricing", title: `Pricing - ${BRAND}`, description: `Plans for the ${BRAND} web app and API.` },
-  { out: "support/index.html", src: "support.html", active: "support", title: `Contact Support - ${BRAND}`, description: `Get help with ${BRAND}.` }
+  { out: "index.html", src: "index.html", active: "home", title: `Image to Vector Converter | Turn PNG, JPG & WebP into SVG, PDF, EPS, DXF - ${BRAND}`, description: "Turn pixel images into clean, scalable vector artwork on your own computer, offline. Free preview, download SVG, PDF, EPS, DXF or PNG.", scripts: ["/assets/js/vectorize.js", "/assets/js/examples.js", "/assets/js/app.js"] }
 ];
+// Pages removed in 1.1.0 are deleted from an existing dist/ so stale copies are not served.
+for (const old of ["api", "pricing", "support"]) fs.rmSync(path.join(dist, old), { recursive: true, force: true });
 
 for (const p of pages) {
   write(p.out, layout({ title: p.title, description: p.description, body: readPage(p.src), active: p.active, scripts: p.scripts }));
