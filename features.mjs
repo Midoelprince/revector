@@ -1,4 +1,4 @@
-// The "Full Featured" pegboard on the home page. Strings are keys in src/js/i18n.js.
+// The "Under the hood" pegboard on the home page. Strings are keys in src/js/i18n.js.
 const pin = (color, x, rot) => `<span class="pin" style="--pin:${color};--pin-x:${x};--pin-rot:${rot}" aria-hidden="true"><svg viewBox="0 0 58 58" fill="none"><circle cx="29" cy="20" r="12" fill="currentColor"/><circle cx="24" cy="15" r="3.5" fill="#fff" fill-opacity=".55"/><path d="M29 32v22" stroke="#12182b" stroke-width="2.4" stroke-linecap="round"/></svg></span>`;
 
 const art = {
@@ -13,14 +13,14 @@ const art = {
 };
 
 const tools = [
-  { art: "engine", pin: ["var(--pin-red)", "44%", "-28deg"], title: "Deep vector engine", lead: "More detail", more: "Edges are fitted with least-squares cubic Bézier curves and straight lines, through edge midpoints rather than pixel corners, so stair steps never reach the output." },
-  { art: "recon", pin: ["#0b7894", "52%", "22deg"], title: "Local edge reconstruction", lead: "Small pictures, rebuilt at 4x", more: "Pictures under 800 px are denoised, snapped with an Otsu threshold and interpolated through signed distance fields at four times their size before tracing. It runs on your computer with no model download and nothing to configure." },
-  { art: "shapes", pin: ["#f0b429", "40%", "-18deg"], title: "Vector graph", lead: "Full shape fitting", more: "Neighbouring regions share one traced border, so shapes meet exactly with no hairline gaps or overlaps between colours." },
-  { art: "corners", pin: ["var(--pin-red)", "56%", "30deg"], title: "Corner control", lead: "Clean corners", more: "Corners and sharp tips are detected on the outline and kept exactly; the runs between them become smooth curves. A slider sets how eagerly corners are kept." },
-  { art: "speed", pin: ["#2f9e6a", "46%", "-34deg"], title: "High performance", lead: "Nobody likes waiting.", more: "Tracing runs in a background worker, the colour analysis is reused when only settings change, and small pictures trace in well under a second." },
-  { art: "symmetry", pin: ["#0b7894", "50%", "16deg"], title: "Symmetry modelling", lead: "Make left and right halves match", more: "Switch on symmetry to average the two halves of a logo before tracing, so both sides come out identical." },
-  { art: "palette", pin: ["#f0b429", "42%", "-22deg"], title: "Palette control", lead: "Background removal", more: "Pick the number of colours or let it be chosen for you, recolour, merge or cut out any colour, and remove the background with one checkbox." },
-  { art: "export", pin: ["var(--pin-red)", "54%", "26deg"], title: "Export choices", lead: "Full color & transparency", more: "Save SVG, PDF, EPS or DXF with fills only, ready for Illustrator, Inkscape, cutting software and CAD, or a cleaned-up PNG." }
+  { art: "engine", pin: ["var(--pin-red)", "44%", "-28deg"], title: "Curve fitting", lead: "Lines and Bézier curves, fitted by least squares", more: "Edges are fitted with least-squares cubic Bézier curves and straight lines, through edge midpoints rather than pixel corners, so stair steps never reach the output." },
+  { art: "recon", pin: ["#0b7894", "52%", "22deg"], title: "Small-picture cleanup", lead: "Low-resolution pictures are rebuilt first", more: "Pictures under 800 px are denoised, snapped with an Otsu threshold and interpolated through signed distance fields at four times their size before tracing. It runs on your computer with no model download and nothing to configure." },
+  { art: "shapes", pin: ["#f0b429", "40%", "-18deg"], title: "Shared borders", lead: "One edge between two colors", more: "Neighbouring regions share one traced border, so shapes meet exactly with no hairline gaps or overlaps between colours." },
+  { art: "corners", pin: ["var(--pin-red)", "56%", "30deg"], title: "Corner detection", lead: "Sharp where the picture is sharp", more: "Corners and sharp tips are detected on the outline and kept exactly; the runs between them become smooth curves. A slider sets how eagerly corners are kept." },
+  { art: "speed", pin: ["#2f9e6a", "46%", "-34deg"], title: "Background tracing", lead: "The window never freezes", more: "Tracing runs in a background worker, the colour analysis is reused when only settings change, and small pictures trace in well under a second." },
+  { art: "symmetry", pin: ["#0b7894", "50%", "16deg"], title: "Mirror symmetry", lead: "Matching left and right halves", more: "Switch on symmetry to average the two halves of a logo before tracing, so both sides come out identical." },
+  { art: "palette", pin: ["#f0b429", "42%", "-22deg"], title: "Color editing", lead: "Merge, recolor or cut out", more: "Pick the number of colours or let it be chosen for you, recolour, merge or cut out any colour, and remove the background with one checkbox." },
+  { art: "export", pin: ["var(--pin-red)", "54%", "26deg"], title: "Five formats", lead: "SVG · PDF · EPS · DXF · PNG", more: "Save SVG, PDF, EPS or DXF with fills only, ready for Illustrator, Inkscape, cutting software and CAD, or a cleaned-up PNG." }
 ];
 
 export function renderFeatures() {
