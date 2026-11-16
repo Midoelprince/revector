@@ -33,11 +33,13 @@
     const stage = $("[data-stage]", insp), views = $$("[data-view]", stage), loupe = $(".loupe", stage), loupeView = $("[data-loupe]", stage);
     const zoom = $("[data-zoom]", insp), fileLabel = $("[data-inspector-file]", insp), list = $("[data-examples]", insp);
     const st = { i: EX.defaultIndex, canvas: null, result: null, cx: 0, cy: 0, zoomV: +zoom.value, seam: 0.5, dy: 0, s: 1, tx: 0, ty: 0 };
-    const cache = new Map();
+    const cache = new Map(), SHOWCASE_SIZE = 800;
 
     function exampleData(i) {
       if (!cache.has(i)) {
-        const ex = EX.list[i], canvas = EX.render(ex, 3);
+        // drawn at 800 px on the long side: sharp enough to look right when zoomed in, and
+        // large enough to be traced at full size
+        const ex = EX.list[i], canvas = EX.render(ex, SHOWCASE_SIZE / Math.max(ex.w, ex.h));
         cache.set(i, { canvas, result: R.trace(imageDataOf(canvas), { colors: 0, detail: 3, corners: 2, layering: "stacked" }) });
       }
       return cache.get(i);

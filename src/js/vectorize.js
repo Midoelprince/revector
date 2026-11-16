@@ -217,6 +217,11 @@
   const SOFT_LO = 14, SOFT_HI = 48, SOFT_MAX = 3;
   // Fitting at 4x: the 1/4 keeps the per-source-pixel tolerance; the SDF already removed staircases.
   const RECON_ERR = 0.25;
+  // The 4x outline still carries a faint ripple with the period of one source pixel; left alone, the
+  // curve fitter breaks it into runs of short straight pieces (the jagged look of small pictures).
+  // Three extra smoothing passes remove it: measured on the examples at ~450 px, 44% fewer points at
+  // the same accuracy; at ~225 px, 31% fewer points for ~4% more error.
+  const RECON_SMOOTH = 3;
 
   function bilateralFilter(src, w, h, radius, sigmaS, sigmaR) {
     const out = new Uint8ClampedArray(src);
@@ -1917,7 +1922,7 @@
       const lineErr = det.err * det.err * (smoothMode ? 2.25 : 1) * S * S;
       // straight-line tolerance stays in source pixels: the 4x curve tolerance is tighter, which made
       // slightly noisy straight edges come out wavy
-      const settings = { err: baseErr, lineErr, smooth: baseSmooth, cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S, shapes: opts.shapes !== false };
+      const settings = { err: baseErr, lineErr, smooth: baseSmooth + (recon ? RECON_SMOOTH : 0), cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S, shapes: opts.shapes !== false };
       // v2: small shapes get a looser, smoother fit with fewer corners
       const smallDeg = settings.cornerDeg < RIGHT_ANGLE_DEG ? Math.min(RIGHT_ANGLE_DEG, settings.cornerDeg + 20) : Math.min(150, settings.cornerDeg + 30);
       settings.small = { err: settings.err * 2, lineErr: settings.lineErr * 2, smooth: settings.smooth + 1, cornerDeg: smallDeg, iconLogoMode: smoothMode, scale: S, shapes: settings.shapes };
