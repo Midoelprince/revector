@@ -108,7 +108,7 @@ function footer() {
     <div class="footer-grid">
       <div class="footer-brand">
         <a class="brand" href="/">${logo}<span>${BRAND}</span></a>
-        <p class="signature">Traced with care by a very meticulous robot.</p><hr class="signature-rule">
+        <p class="signature">For everyone who would rather not redraw a logo by hand.</p><hr class="signature-rule">
       </div>
       <div><h2>Product</h2><ul><li><a href="/#how-title">How It Works</a></li><li><a href="/#features-title">Features</a></li><li><a href="/#faq-title">FAQ</a></li></ul></div>
       <div><h2>Company</h2><ul><li><a href="https://github.com/Midoelprince/revector">Source code</a></li><li><a href="https://github.com/Midoelprince/revector/releases">Releases</a></li><li><a href="https://github.com/Midoelprince/revector/blob/main/LICENSE">License</a></li></ul></div>
@@ -175,7 +175,7 @@ function write(rel, html) {
 }
 
 const pages = [
-  { out: "index.html", src: "index.html", active: "home", title: `Image to Vector Converter | Turn PNG, JPG & WebP into SVG, PDF, EPS, DXF - ${BRAND}`, description: "Turn pixel images into clean, scalable vector artwork on your own computer, offline. Free preview, download SVG, PDF, EPS, DXF or PNG.", scripts: ["/assets/js/vectorize.js", "/assets/js/examples.js", "/assets/js/app.js"] }
+  { out: "index.html", src: "index.html", active: "home", title: `${BRAND} - Free offline image to vector converter`, description: "Revector redraws PNG, JPG, GIF, BMP and WebP pictures as editable SVG, PDF, EPS and DXF files, entirely on your own computer. Free, open source, no upload.", scripts: ["/assets/js/vectorize.js", "/assets/js/examples.js", "/assets/js/app.js"] }
 ];
 // Pages removed in 1.1.0 are deleted from an existing dist/ so stale copies are not served.
 for (const old of ["api", "pricing", "support"]) fs.rmSync(path.join(dist, old), { recursive: true, force: true });
