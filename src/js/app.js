@@ -160,7 +160,8 @@
       name: "image", orig: null, trace: null, imageId: 0, result: null,
       clusters: null, cells: [], hidden: new Set(),
       mode: "split", view: { s: 1, tx: 0, ty: 0 }, seam: 0.5,
-      opts: { colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true },
+      opts: { colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: false, shapes: true },
+      pick: -1, history: [], hIdx: -1, pendingHidden: null, commitOnDone: false,
       gapFill: true, strokes: false, edit: false, crop: false, job: 0,
       symmetry: false, merging: false, selected: new Set()
     };
@@ -229,9 +230,10 @@
           if (used.length !== result.clusters.length) { run(false); return; }
         }
         progress.classList.remove("on");
-        st.result = result; st.hidden = new Set();
+        st.result = result; st.hidden = st.pendingHidden || new Set(); st.pendingHidden = null;
         $("[data-opt=removeBg]", root).checked = bgCell() ? bgCell().transparent : false;
         render(); renderSwatches(); if (resetPalette) fit();
+        if (st.commitOnDone || !st.history.length) { st.commitOnDone = false; commit(); }
       };
       const local = () => setTimeout(() => {
         try {
@@ -315,20 +317,33 @@
     }
     function renderSwatches() {
       swatches.innerHTML = "";
+      const total = st.cells.reduce((a, c) => a + c.members.reduce((b, k) => b + st.clusters[k].count, 0), 0) || 1;
       st.cells.forEach((cell, ci) => {
         const sw = document.createElement("button");
-        sw.type = "button"; sw.className = "swatch" + (cell.transparent ? " is-transparent" : "") + (st.selected.has(ci) ? " is-selected" : "");
-        sw.style.background = swatchBackground(cell);
+        sw.type = "button"; sw.className = "swatch" + (cell.transparent ? " is-transparent" : "") + (st.selected.has(ci) || st.pick === ci ? " is-selected" : "");
+        const real = cell.members.filter((k) => st.clusters[k].count > 0);
+        const cnt = real.reduce((a, k) => a + st.clusters[k].count, 0);
+        const d = Math.round(Math.max(40, Math.min(104, 40 + 64 * Math.sqrt(cnt / total))));
+        sw.style.setProperty("--d", d + "px");
+        sw.style.background = cell.transparent ? "" : cell.color;
         sw.draggable = true; sw.dataset.cell = ci;
-        const members = cell.members.filter((k) => st.clusters[k].count > 0).length;
-        sw.title = `${T("Color")} ${ci + 1}: ${cell.transparent ? T("transparent") : cell.color}${members > 1 ? ` (${members} ${T("colors merged")})` : ""}`;
+        sw.title = `${T("Color")} ${ci + 1}: ${cell.transparent ? T("transparent") : cell.color}${real.length > 1 ? ` (${real.length} ${T("colors merged")})` : ""}`;
         sw.setAttribute("aria-label", sw.title);
-        if (members > 1) { const b = document.createElement("span"); b.className = "swatch-badge"; b.textContent = members; sw.appendChild(b); }
+        sw.setAttribute("aria-pressed", st.selected.has(ci) || st.pick === ci ? "true" : "false");
+        // merged source colours sit inside the output disc, sized by their share of it
+        if (real.length > 1) real.forEach((k, j) => {
+          const m = document.createElement("span"); m.className = "member";
+          const md = Math.max(9, Math.round(d * 0.46 * Math.sqrt(st.clusters[k].count / cnt)));
+          const ang = (j / real.length) * Math.PI * 2 - Math.PI / 2, rr = d * 0.24;
+          Object.assign(m.style, { width: md + "px", height: md + "px", left: (d / 2 + Math.cos(ang) * rr - md / 2) + "px", top: (d / 2 + Math.sin(ang) * rr - md / 2) + "px", background: st.clusters[k].color });
+          sw.appendChild(m);
+        });
         sw.addEventListener("click", (e) => {
           e.stopPropagation();
           if (st.merging) { st.selected.has(ci) ? st.selected.delete(ci) : st.selected.add(ci); renderSwatches(); updateMergeBar(); return; }
-          openPop(ci, sw);
+          st.pick = st.pick === ci ? -1 : ci; closePop(); renderSwatches();
         });
+        sw.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!st.merging) { st.pick = ci; renderSwatches(); openPop(ci, swatches.querySelector(`[data-cell="${ci}"]`)); } });
         sw.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/x-cell", String(ci)); e.dataTransfer.effectAllowed = "move"; sw.classList.add("is-dragging"); });
         sw.addEventListener("dragend", () => sw.classList.remove("is-dragging"));
         sw.addEventListener("dragover", (e) => { if (Array.from(e.dataTransfer.types).includes("text/x-cell")) { e.preventDefault(); sw.classList.add("is-drop"); } });
@@ -340,6 +355,13 @@
         });
         swatches.appendChild(sw);
       });
+      if (st.pick >= st.cells.length) st.pick = -1;
+      const pc = st.pick >= 0 ? st.cells[st.pick] : null;
+      $("[data-pal-split]", root).disabled = st.merging || !pc || pc.members.filter((k) => st.clusters[k].count > 0).length < 2;
+      $("[data-pal-edit]", root).disabled = st.merging || !pc;
+      const nColors = st.cells.filter((c) => !c.transparent).length;
+      $("[data-palette-count]", root).textContent = nColors;
+      syncPresets();
       updateMergeBar();
     }
 
@@ -355,7 +377,8 @@
       st.cells = next;
       merged.color = cellColorFromMembers(members);
       st.selected.clear(); setMerging(false); closePop();
-      renderSwatches(); run(false);
+      st.pick = st.cells.indexOf(merged);
+      renderSwatches(); st.commitOnDone = true; run(false);
     }
     function unmergeCell(ci) {
       const cell = st.cells[ci];
@@ -364,11 +387,11 @@
       const empty = cell.members.filter((k) => !st.clusters[k].count);
       const parts = real.map((k, i) => ({ members: i === 0 ? [k].concat(empty) : [k], color: st.clusters[k].color, transparent: cell.transparent }));
       st.cells.splice(ci, 1, ...parts);
-      closePop(); renderSwatches(); run(false);
+      st.pick = -1; closePop(); renderSwatches(); st.commitOnDone = true; run(false);
     }
     function setTransparent(ci, on) {
       st.cells[ci].transparent = on;
-      if (st.opts.layering === "stacked") run(false); else { render(); }
+      if (st.opts.layering === "stacked") { st.commitOnDone = true; run(false); } else { render(); commit(); }
       renderSwatches();
       const bc = bgCell(); $("[data-opt=removeBg]", root).checked = bc ? bc.transparent : false;
     }
@@ -394,7 +417,7 @@
       if (top + ph > rb.height - 8) top = ab.top - rb.top - ph - 8;
       pop.style.left = left + "px"; pop.style.top = Math.max(8, top) + "px";
     }
-    function closePop() { pop.hidden = true; popCell = -1; }
+    function closePop() { if (!pop.hidden && popCell >= 0 && st.history[st.hIdx] && JSON.stringify(st.cells) !== st.history[st.hIdx].cells) commit(); pop.hidden = true; popCell = -1; }
     function recolor(ci, value) {
       if (!/^#[0-9a-f]{6}$/i.test(value)) return;
       st.cells[ci].color = value.toLowerCase();
@@ -483,7 +506,8 @@
       st.merging = on;
       if (!on) st.selected.clear();
       $("[data-merge-toggle]", root).setAttribute("aria-pressed", on ? "true" : "false");
-      $("[data-merge-toggle]", root).textContent = T(on ? "Cancel merge" : "Merge colors");
+      $("[data-merge-toggle] span", root).textContent = T(on ? "Cancel merge" : "Merge");
+      if (on) st.pick = -1;
       swatches.classList.toggle("is-merging", on);
       renderSwatches();
     }
@@ -529,6 +553,7 @@
       }
       st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
       st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null;
+      st.history = []; st.hIdx = -1; st.pick = -1; updateHistoryButtons();
       fileEl.textContent = `${name || "image"}  ·  ${canvas.width} × ${canvas.height}`;
     }
 
@@ -649,7 +674,7 @@
       pan = null;
       if (!moved && st.edit) {
         const p = e.target.closest("path[data-k]");
-        if (p) { st.hidden.add(p.dataset.k); p.style.display = "none"; render(); }
+        if (p) { st.hidden.add(p.dataset.k); p.style.display = "none"; render(); commit(); }
       }
     });
     canvasEl.addEventListener("pointercancel", () => { pan = null; seamDrag = false; cropStart = null; cropBox.style.display = "none"; canvasEl.classList.remove("dragging"); });
@@ -664,17 +689,110 @@
     const retrace = (reset) => { clearTimeout(t); t = setTimeout(() => run(reset), 220); };
     $$("[data-opt]", root).forEach((el) => el.addEventListener(el.type === "range" ? "input" : "change", () => {
       const k = el.dataset.opt;
+      if (["colors", "iconLogoMode", "detail", "corners", "layering", "symmetry", "shapes"].includes(k)) st.commitOnDone = true;
       if (k === "colors") { st.opts.colors = +el.value; if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; retrace(true); }
       else if (k === "iconLogoMode") { st.opts.iconLogoMode = el.checked; if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; retrace(true); }
       else if (k === "detail") { st.opts.detail = +el.value; $("[data-detail-val]", root).textContent = (window.t ? window.t(detailNames[el.value]) : detailNames[el.value]); retrace(false); }
-      else if (k === "corners") { st.opts.corners = +el.value; $("[data-corner-val]", root).textContent = (window.t ? window.t(cornerNames[el.value]) : cornerNames[el.value]); retrace(false); }
+      else if (k === "corners") { st.opts.corners = +el.value; $("[data-corner-val]", root).textContent = (window.t ? window.t(cornerNames[el.value]) : cornerNames[el.value]); syncCornerMode(); retrace(false); }
       else if (k === "layering") { st.opts.layering = el.value; retrace(false); }
-      else if (k === "gapFill") { st.gapFill = el.checked; render(); }
+      else if (k === "gapFill") { st.gapFill = el.checked; render(); commit(); }
+      else if (k === "shapes") { st.opts.shapes = el.checked; retrace(false); }
       else if (k === "removeBg") { const c = bgCell(); if (c) setTransparent(st.cells.indexOf(c), el.checked); }
       else if (k === "symmetry") { st.symmetry = el.checked; st.imageId++; localSession = null; retrace(true); }
       else if (k === "edit") { st.edit = el.checked; render(); }
       else if (k === "strokes") { st.strokes = el.checked; render(); }
     }));
+
+
+    // ---- editor panels: a tool list, each tool opens its own panel ----
+    function showPanel(name) {
+      $$("[data-panel]", root).forEach((pn) => { pn.hidden = pn.dataset.panel !== name; });
+      closePop(); if (st.merging) setMerging(false);
+      const first = $(`[data-panel="${name}"] button, [data-panel="${name}"] input`, root);
+      if (first && name !== "home") first.focus({ preventScroll: true });
+    }
+    $$("[data-tool]", root).forEach((b) => b.addEventListener("click", () => showPanel(b.dataset.tool)));
+    $$("[data-tool-back]", root).forEach((b) => b.addEventListener("click", () => showPanel("home")));
+
+    // ---- palette presets (number of colours) ----
+    const colorSel = $("[data-opt=colors]", root), presets = $("[data-presets]", root);
+    Array.from(colorSel.options).forEach((o) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.value = o.value; b.textContent = o.value === "0" ? T("Auto") : o.value;
+      b.setAttribute("aria-label", o.value === "0" ? T("Auto") : `${o.value} ${T("colors")}`);
+      b.addEventListener("click", () => { if (colorSel.value === o.value) return; colorSel.value = o.value; colorSel.dispatchEvent(new Event("change")); syncPresets(); });
+      presets.appendChild(b);
+    });
+    function syncPresets() { $$("button", presets).forEach((b) => b.setAttribute("aria-pressed", b.dataset.value === colorSel.value ? "true" : "false")); }
+    $("[data-pal-split]", root).addEventListener("click", (e) => { e.stopPropagation(); if (st.pick >= 0) unmergeCell(st.pick); });
+    $("[data-pal-edit]", root).addEventListener("click", (e) => { e.stopPropagation(); if (st.pick >= 0) openPop(st.pick, swatches.querySelector(`[data-cell="${st.pick}"]`) || e.currentTarget); });
+    $("[data-pal-reset]", root).addEventListener("click", () => { if (!st.result) return; closePop(); setMerging(false); st.pick = -1; st.commitOnDone = true; run(true); });
+
+    // ---- corners: automatic / all sharp / all round map onto the sharpness slider ----
+    const CORNER_MODES = { auto: 2, sharp: 4, round: 0 };
+    function syncCornerMode() { $$("[data-corner-mode]", root).forEach((rb) => { rb.checked = CORNER_MODES[rb.value] === st.opts.corners; }); }
+    $$("[data-corner-mode]", root).forEach((rb) => rb.addEventListener("change", () => {
+      if (!rb.checked) return;
+      const sl = $("[data-opt=corners]", root); sl.value = CORNER_MODES[rb.value]; sl.dispatchEvent(new Event("input"));
+    }));
+
+    // ---- undo / redo: every step stores the settings, the palette and the removed shapes ----
+    function snapshot() {
+      return { opts: Object.assign({}, st.opts), symmetry: st.symmetry, gapFill: st.gapFill, hidden: Array.from(st.hidden), clusters: st.clusters, cells: JSON.stringify(st.cells) };
+    }
+    function sameStep(a, b) {
+      return a.clusters === b.clusters && a.cells === b.cells && a.symmetry === b.symmetry && a.gapFill === b.gapFill
+        && JSON.stringify(a.opts) === JSON.stringify(b.opts) && a.hidden.join() === b.hidden.join();
+    }
+    function commit() {
+      if (!st.result) return;
+      const snap = snapshot(), cur = st.history[st.hIdx];
+      if (cur && sameStep(cur, snap)) return;
+      st.history = st.history.slice(0, st.hIdx + 1); st.history.push(snap);
+      if (st.history.length > 60) st.history.shift();
+      st.hIdx = st.history.length - 1; updateHistoryButtons();
+    }
+    function updateHistoryButtons() {
+      $("[data-undo]", root).disabled = st.hIdx <= 0;
+      $("[data-redo]", root).disabled = st.hIdx < 0 || st.hIdx >= st.history.length - 1;
+    }
+    function syncControls() {
+      const o = st.opts;
+      colorSel.value = String(o.colors); syncPresets();
+      $("[data-opt=detail]", root).value = o.detail; $("[data-detail-val]", root).textContent = T(detailNames[o.detail]);
+      $("[data-opt=corners]", root).value = o.corners; $("[data-corner-val]", root).textContent = T(cornerNames[o.corners]); syncCornerMode();
+      $("[data-opt=layering]", root).value = o.layering;
+      $("[data-opt=shapes]", root).checked = o.shapes !== false;
+      $("[data-opt=iconLogoMode]", root).checked = !!o.iconLogoMode;
+      $("[data-opt=symmetry]", root).checked = st.symmetry;
+      $("[data-opt=gapFill]", root).checked = st.gapFill;
+    }
+    const structureOf = (cells) => JSON.stringify(cells.map((c) => [c.members, c.transparent]));
+    function restore(state) {
+      const prev = { opts: st.opts, symmetry: st.symmetry, clusters: st.clusters, structure: structureOf(st.cells) };
+      st.opts = Object.assign({}, state.opts); st.symmetry = state.symmetry; st.gapFill = state.gapFill;
+      st.clusters = state.clusters; st.cells = JSON.parse(state.cells);
+      st.pick = -1; st.selected.clear(); pop.hidden = true; popCell = -1; if (st.merging) setMerging(false);
+      syncControls();
+      const rebin = prev.opts.colors !== st.opts.colors || prev.opts.iconLogoMode !== st.opts.iconLogoMode || prev.symmetry !== st.symmetry;
+      if (rebin) { if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; }
+      const retraceNeeded = rebin || prev.clusters !== st.clusters || prev.structure !== structureOf(st.cells)
+        || ["detail", "corners", "layering", "shapes"].some((k) => prev.opts[k] !== st.opts[k]);
+      if (retraceNeeded) { st.pendingHidden = new Set(state.hidden); run(false); }
+      else { st.hidden = new Set(state.hidden); render(); renderSwatches(); }
+      updateHistoryButtons();
+    }
+    function undo() { if (st.hIdx > 0) { st.hIdx--; restore(st.history[st.hIdx]); } }
+    function redo() { if (st.hIdx < st.history.length - 1) { st.hIdx++; restore(st.history[st.hIdx]); } }
+    $("[data-undo]", root).addEventListener("click", undo);
+    $("[data-redo]", root).addEventListener("click", redo);
+    document.addEventListener("keydown", (e) => {
+      if (!root.classList.contains("open") || !(e.ctrlKey || e.metaKey)) return;
+      if (e.target && e.target.tagName === "INPUT" && e.target.type === "text") return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      else if (key === "y" || (key === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
+    });
 
     // ---- dialogs ----
     const dialog = (name, on) => { const d = $(`[data-dialog="${name}"]`, root); if (d) d.hidden = !on; };

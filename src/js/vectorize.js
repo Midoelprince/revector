@@ -1501,7 +1501,7 @@
     }
 
     function trace(options, progress) {
-      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: true, reconstruct: true, shapes: true, groups: null, transparent: [] }, options || {});
+      const opts = Object.assign({ colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: false, reconstruct: true, shapes: true, groups: null, transparent: [] }, options || {});
       const say = progress || function () {};
       const recon = opts.reconstruct !== false && Math.max(w, h) < RECON_MAX && w > 1 && h > 1;
       const S = recon ? RECON_SCALE : 1;

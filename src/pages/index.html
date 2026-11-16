@@ -205,48 +205,89 @@
       </div>
     </div>
     <aside class="app-side" aria-label="Settings">
-      <h2 class="visually-hidden">Refine result</h2>
-      <h3 data-i18n>Palette</h3>
-      <div class="row"><label for="opt-colors" data-i18n>Colors</label><select id="opt-colors" data-opt="colors"><option value="0">Auto</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>24</option></select></div>
-      <div class="swatches" data-swatches style="margin-top:12px"></div>
-      <p class="hint">Click a color to change it or make it transparent. Drag one color onto another to merge them into one shape.</p>
-      <div class="merge-row">
-        <button type="button" class="btn btn-outline" data-merge-toggle aria-pressed="false" data-i18n>Merge colors</button>
-        <span class="merge-bar" data-merge-bar hidden><button type="button" class="btn btn-primary" data-merge-apply disabled>Pick 2 or more colors</button></span>
+      <div class="ed-panel" data-panel="home">
+        <h2 class="ed-title" data-i18n>Refine result</h2>
+        <button type="button" class="ed-tool" data-tool="background"><span class="ed-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"/><path d="M8 17v-3l4-4 4 4v3z" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="2" fill="currentColor" stroke="none"/></svg></span><span class="ed-txt"><strong><span data-i18n>Background</span></strong><span data-i18n>Remove the background and choose what to keep.</span></span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="ed-tool" data-tool="palette"><span class="ed-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-1-1.6-1-2.6 1-1.4 2-1.4h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7.5" cy="11" r="1.6" fill="#e4572e"/><circle cx="10" cy="7" r="1.6" fill="#f0b429"/><circle cx="14.5" cy="7" r="1.6" fill="#2f9e6a"/><circle cx="17" cy="11" r="1.6" fill="#3b82f6"/></svg></span><span class="ed-txt"><strong><span data-i18n>Palette</span> <span class="ed-badge" data-palette-count>0</span></strong><span data-i18n>Choose and edit the colors used throughout your image.</span></span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="ed-tool" data-tool="regions"><span class="ed-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M10 5v14M10 12h11"/></svg></span><span class="ed-txt"><strong><span data-i18n>Regions</span></strong><span data-i18n>Remove individual shapes or crop the picture.</span></span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="ed-tool" data-tool="geometry"><span class="ed-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="8" r="4"/><path d="M14 4h7v7h-7zM6 20l4-7 4 7z"/></svg></span><span class="ed-txt"><strong><span data-i18n>Geometry</span></strong><span data-i18n>Symmetry, simplified shapes, detail and layering.</span></span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" class="ed-tool" data-tool="corners"><span class="ed-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V8a4 4 0 0 1 4-4h12" stroke-dasharray="2 2"/><path d="M4 20V4h16"/></svg></span><span class="ed-txt"><strong><span data-i18n>Corners</span></strong><span data-i18n>Sharpen or round corners throughout the image.</span></span><svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <p class="stats" data-stats></p>
       </div>
-      <h3 data-i18n>Layering</h3>
-      <div class="row"><label for="opt-layering" data-i18n>Shapes</label><select id="opt-layering" data-opt="layering"><option value="cutouts" selected>Cutouts (shared edges)</option><option value="stacked">Stacked</option></select></div>
-      <label class="check"><input type="checkbox" data-opt="gapFill" checked> Gap filler (hides hairline seams)</label>
-      <h3 data-i18n>Shapes</h3>
-      <div class="row"><label for="opt-detail" data-i18n>Detail</label><span class="stats" data-detail-val>Medium</span></div>
-      <input id="opt-detail" type="range" min="0" max="4" step="1" value="2" data-opt="detail">
-      <h3 data-i18n>Corners</h3>
-      <div class="row"><label for="opt-corners" data-i18n>Sharpness</label><span class="stats" data-corner-val>Balanced</span></div>
-      <input id="opt-corners" type="range" min="0" max="4" step="1" value="2" data-opt="corners">
-      <h3 data-i18n>Smoothness</h3>
-      <label class="check"><input type="checkbox" data-opt="iconLogoMode" checked> <span data-i18n>Icon/Logo Mode (Smooth)</span></label>
-      <h3 data-i18n>Symmetry</h3>
-      <label class="check"><input type="checkbox" data-opt="symmetry"> Make left and right halves match</label>
-      <h3 data-i18n>Edit</h3>
-      <label class="check"><input type="checkbox" data-opt="removeBg"> <span data-i18n>Remove background</span></label>
-      <label class="check"><input type="checkbox" data-opt="edit"> <span data-i18n>Click shapes to remove them</span></label>
-      <div class="row" style="margin-top:12px"><button type="button" class="btn btn-outline" data-crop data-i18n style="font-size:14px;padding:6px 12px">Crop</button><button type="button" class="btn btn-outline" data-reset data-i18n style="font-size:14px;padding:6px 12px">Reset edits</button></div>
-      <p class="stats" data-stats></p>
-      <h3 data-i18n>Download</h3>
-      <select class="dl-format" data-dl-format aria-label="File format">
-        <option value="eps" selected>EPS – Illustrator</option>
-        <option value="svg">SVG</option>
-        <option value="pdf">PDF</option>
-        <option value="dxf">DXF</option>
-        <option value="png">PNG</option>
-      </select>
-      <div class="dl-grid">
-        <button type="button" class="btn btn-primary wide" data-dl="main" data-i18n>Download</button>
-        <button type="button" class="btn btn-outline" data-dl="eps">EPS</button>
-        <button type="button" class="btn btn-outline" data-dl="svg">SVG</button>
-        <button type="button" class="btn btn-outline" data-dl="pdf">PDF</button>
-        <button type="button" class="btn btn-outline" data-dl="dxf">DXF</button>
-        <button type="button" class="btn btn-outline" data-dl="png">PNG</button>
+
+      <div class="ed-panel" data-panel="background" hidden>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <h2 class="ed-title" data-i18n>Background</h2>
+        <label class="check"><input type="checkbox" data-opt="removeBg"> <span data-i18n>Remove background</span></label>
+        <p class="hint" data-i18n>Makes the color along the picture's edge transparent. To keep or drop single shapes, use Regions.</p>
+      </div>
+
+      <div class="ed-panel" data-panel="palette" hidden>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <h2 class="ed-title" data-i18n>Palette</h2>
+        <div class="pal-legend" aria-hidden="true"><span class="pl-orig"><i></i><i></i><i></i></span><span data-i18n>Original</span><span class="pl-arrow">→</span><span class="pl-out"><i></i></span><span data-i18n>Output</span></div>
+        <div class="swatches" data-swatches></div>
+        <div class="pal-actions" role="group" aria-label="Palette tools">
+          <button type="button" class="pal-act" data-merge-toggle aria-pressed="false"><svg viewBox="0 0 32 20" aria-hidden="true"><circle cx="6" cy="10" r="3.5"/><path d="M10 10h8"/><circle cx="24" cy="10" r="6"/></svg><span data-i18n>Merge</span></button>
+          <button type="button" class="pal-act" data-pal-split disabled><svg viewBox="0 0 32 20" aria-hidden="true"><circle cx="11" cy="10" r="7"/><circle cx="9" cy="8" r="2.5"/><path d="M18 10h9M24 7l3 3-3 3"/></svg><span data-i18n>Split</span></button>
+          <button type="button" class="pal-act" data-pal-edit disabled><svg viewBox="0 0 32 20" aria-hidden="true"><circle cx="13" cy="10" r="7"/><path d="M19 15l5 4M21 12l6 1"/></svg><span data-i18n>Edit</span></button>
+        </div>
+        <span class="merge-bar" data-merge-bar hidden><button type="button" class="btn btn-primary" data-merge-apply disabled>Pick 2 or more colors</button></span>
+        <p class="hint" data-i18n>Click a color to select it, double-click to edit it. Drag one color onto another to merge them into one shape.</p>
+        <h3 data-i18n>Palette presets</h3>
+        <div class="pal-presets" role="group" aria-label="Number of colors" data-presets></div>
+        <select id="opt-colors" data-opt="colors" hidden><option value="0">Auto</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option><option>16</option><option>24</option></select>
+        <button type="button" class="ed-link" data-pal-reset><span aria-hidden="true">↺</span> <span data-i18n>Reset all</span></button>
+      </div>
+
+      <div class="ed-panel" data-panel="regions" hidden>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <h2 class="ed-title" data-i18n>Regions</h2>
+        <label class="check"><input type="checkbox" data-opt="edit"> <span data-i18n>Click shapes to remove them</span></label>
+        <div class="row" style="margin-top:14px"><button type="button" class="btn btn-outline" data-crop data-i18n>Crop</button><button type="button" class="btn btn-outline" data-reset data-i18n>Reset edits</button></div>
+      </div>
+
+      <div class="ed-panel" data-panel="geometry" hidden>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <h2 class="ed-title" data-i18n>Geometry</h2>
+        <label class="check"><input type="checkbox" data-opt="shapes" checked> <span data-i18n>Fit precise shapes</span></label>
+        <p class="hint" data-i18n>Circles, ellipses, rectangles and rounded rectangles come out as exact shapes; straight sides and round arcs stay true.</p>
+        <label class="check"><input type="checkbox" data-opt="symmetry"> <span data-i18n>Make left and right halves match</span></label>
+        <label class="check"><input type="checkbox" data-opt="iconLogoMode"> <span data-i18n>Icon/Logo Mode (Smooth)</span></label>
+        <h3 data-i18n>Detail</h3>
+        <div class="row"><label for="opt-detail" data-i18n>Detail</label><span class="stats" data-detail-val>Medium</span></div>
+        <input id="opt-detail" type="range" min="0" max="4" step="1" value="2" data-opt="detail">
+        <h3 data-i18n>Layering</h3>
+        <div class="row"><label for="opt-layering" data-i18n>Shapes</label><select id="opt-layering" data-opt="layering"><option value="cutouts" selected>Cutouts (shared edges)</option><option value="stacked">Stacked</option></select></div>
+        <label class="check"><input type="checkbox" data-opt="gapFill" checked> <span data-i18n>Gap filler (hides hairline seams)</span></label>
+      </div>
+
+      <div class="ed-panel" data-panel="corners" hidden>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <h2 class="ed-title" data-i18n>Corners</h2>
+        <div class="ed-radios" role="radiogroup" aria-label="Corners">
+          <label class="check"><input type="radio" name="corner-mode" value="auto" data-corner-mode checked> <span data-i18n>Automatic</span></label>
+          <label class="check"><input type="radio" name="corner-mode" value="sharp" data-corner-mode> <span data-i18n>Make all corners sharp</span></label>
+          <label class="check"><input type="radio" name="corner-mode" value="round" data-corner-mode> <span data-i18n>Make all corners round</span></label>
+        </div>
+        <h3 data-i18n>Sharp corners</h3>
+        <div class="row"><label for="opt-corners" data-i18n>Sharpness</label><span class="stats" data-corner-val>Balanced</span></div>
+        <input id="opt-corners" type="range" min="0" max="4" step="1" value="2" data-opt="corners">
+        <div class="row ed-scale"><span data-i18n>Fewer sharp</span><span data-i18n>More sharp</span></div>
+      </div>
+
+      <div class="ed-foot">
+        <div class="ed-history"><button type="button" class="btn btn-outline" data-undo disabled><span aria-hidden="true">↶</span> <span data-i18n>Undo</span></button><button type="button" class="btn btn-outline" data-redo disabled><span aria-hidden="true">↷</span> <span data-i18n>Redo</span></button></div>
+        <div class="ed-dl">
+          <select class="dl-format" data-dl-format aria-label="File format">
+            <option value="eps" selected>EPS – Illustrator</option>
+            <option value="svg">SVG</option>
+            <option value="pdf">PDF</option>
+            <option value="dxf">DXF</option>
+            <option value="png">PNG</option>
+          </select>
+          <button type="button" class="btn btn-primary" data-dl="main"><span aria-hidden="true">⤓</span> <span data-i18n>Download</span></button>
+        </div>
       </div>
     </aside>
   </div>
