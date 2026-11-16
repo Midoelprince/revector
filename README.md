@@ -1,59 +1,76 @@
-# Revector
+# ⚛️ Revector: High-Precision Offline Image-to-Vector Converter
 
-Turn blurry, pixelated images into crisp, resolution-independent vector graphics — right in your browser, or on your desktop with the free Windows app.
+Turn blurry, pixelated images (PNG, JPG, WebP) into crisp, resolution-independent vector graphics (SVG, EPS, PDF, DXF) entirely on your local device. Your images never leave your machine.
 
-Revector traces PNG, JPG, and WebP images into clean SVG vector files using fully automated detail detection. Your images never leave your device: everything runs locally, with no uploads and no accounts.
+***
 
-## Highlights
+## ✨ Revector Highlights
 
-- **Upload anything** — PNG, JPG, or WebP up to 4096 pixels.
-- **Fully automatic tracing** — detail level is detected for you, with manual overrides when you want them.
-- **Local edge reconstruction (1.1.0)** — pictures under 800 px are rebuilt at 4x before tracing: bilateral denoising, Otsu snapping of blurred edge pixels, and signed-distance-field interpolation of every colour region, so pixel staircases and anti-aliasing halos vanish and round shapes become true Bézier curves. No model download, no API key, no configuration.
-- **English and Arabic** — the switcher in the top bar flips the whole interface, including the converter, to a right-to-left Arabic layout.
-- **Real vectors out** — download standards-compliant SVG files that scale to any size without losing quality.
-- **Private by design** — all processing happens on your own machine.
-- **Free desktop app** — the Windows converter is free, with a portable build that needs no installation.
+*   **✅ Private by Design:** All processing happens offline. No uploads. No accounts required.
+*   **⚡️ Fully Automatic Tracing:** Detailed level detection is managed automatically, with manual controls for expert tuning.
+*   **🧠 Local Edge Reconstruction (1.1.0):** Pictures under 800 px are rebuilt at 4x before tracing — bilateral denoising, Otsu snapping of blurred edge pixels, and signed-distance-field interpolation of every colour region — so pixel staircases and anti-aliasing halos vanish and round shapes become true Bézier curves. No model download, no API key, no configuration.
+*   **🖼️ Universal Input:** Supports PNG, JPG, and WebP (up to 4096 pixels).
+*   **📐 Real Vector Output:** Downloads standards-compliant SVG, EPS, PDF, and DXF files that scale perfectly.
+*   **🌐 Multi-Lingual:** Supports Arabic & English UI; the switcher in the top bar flips the whole interface, including the converter, to a right-to-left layout.
 
-## Project layout
+***
 
-- `src/pages/` — the site pages (home and set-locale).
-- `src/js/` — browser code: the vectorizer, worker, and site scripts.
-- `src/css/`, `src/img/` — styles and images.
-- `electron/` — the desktop app shell (main process and preload).
-- `build.mjs` — static site build script (writes `dist/`).
-- `scripts/` — build and packaging helpers.
+## 🛠️ Guided Workflow: Getting Started
 
-## Build the site
+Follow these steps to get Revector running:
 
-```sh
+### 1. Setup (Local Development/Execution)
+You must have Node.js installed.
+
+```bash
+# 1. Navigate into the project directory
+cd revector 
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the local web server for testing
+node scripts/serve.mjs 
+# OR
+# 4. Build the static site for distribution
 npm run build
 ```
 
-This renders the pages into `dist/`, copies the CSS/JS/image assets, and verifies the output.
+### 2. Operating the Converter (The Core Task)
+This is the primary user interaction flow:
 
-## Build the Windows app
+1.  **Upload:** Drag and drop your PNG, JPG, or WebP file into the Revector interface.
+2.  **Review:** Observe the **Trace Confidence Score** displayed.
+    *   *High Score (80%+):* The automated tracing is likely accurate. Proceed to Step 3.
+    *   *Low Score (<70%):* **CAUTION:** The image complexity is high or the input is poor. Utilize the manual override controls to guide the tracing engine.
+3.  **Process:** Click the "Convert to Vector" button.
+4.  **Download:** Download your resulting standards-compliant SVG/EPS file.
 
-```sh
+### 3. Building the Desktop Application
+To create a user-friendly application installer:
+
+```bash
+# 1. Build the site files first
+npm run build
+
+# 2. Package the Electron desktop app with electron-builder
 npm run dist
 ```
+This command outputs the installer (`Revector-Setup-<version>.exe`), the portable executable (`Revector-Portable-<version>.exe`), the `.blockmap` and `latest.yml` into the `/release` folder.
 
-This builds the site, then packages the Electron desktop app with electron-builder. On Linux the packager needs Wine with 32-bit support and a display (`apt install wine32 xvfb`, then `xvfb-run -a npm run dist`). The installer and portable executable are written to `release/`:
+On Linux the packager needs Wine with 32-bit support and a display: `apt install wine32 xvfb`, then `xvfb-run -a npm run dist`.
 
-- `Revector-Setup-<version>.exe` — NSIS installer
-- `Revector-Portable-<version>.exe` — portable build, no installation needed
+***
 
-## Development
+## 📚 Technical Notes & Troubleshooting
 
-Serve the built site locally:
+**❓ Error: Tracing Fails**
+If the conversion fails, check the **Confidence Score**. Low scores indicate the image complexity exceeds the automated detection capabilities. Use the manual controls provided in the GUI to refine the tracing process.
 
-```sh
-node scripts/serve.mjs
-```
+**⚙️ Development Deep Dive**
+*   The core vectorizer logic resides in `src/js/vectorize.js`; `src/js/worker.js` runs it off the main thread.
+*   The desktop application shell is managed by `electron/main.cjs` and `electron/preload.cjs`.
+*   `src/pages/` holds the site pages (home and set-locale), `build.mjs` renders them into `dist/`, and `features.mjs` supplies the feature cards.
 
-## License
-
-MIT — see [LICENSE](LICENSE).
-
----
-
-Traced with care by a very meticulous robot.
+## 📜 License
+This project is released under the MIT License. See the `LICENSE` file for details.
