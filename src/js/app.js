@@ -216,7 +216,6 @@
       showProgress(0.02, "Preparing…");
       const done = (result) => {
         if (id !== st.job) return;
-        progress.classList.remove("on");
         if (resetPalette || !st.clusters) {
           st.clusters = result.clusters;
           // one cell per color that survived; empty clusters ride along in the first cell
@@ -225,10 +224,10 @@
           used.forEach((k) => st.cells.push({ members: [k], color: result.clusters[k].color, transparent: false }));
           if (!st.cells.length) st.cells.push({ members: [0], color: result.clusters[0].color, transparent: false });
           result.clusters.forEach((c, k) => { if (!c.count) st.cells[0].members.push(k); });
-          st.hidden = new Set();
           // groups of the first trace were cluster ids; trace again with the cell layout
           if (used.length !== result.clusters.length) { run(false); return; }
         }
+        progress.classList.remove("on");
         st.result = result; st.hidden = new Set();
         $("[data-opt=removeBg]", root).checked = bgCell() ? bgCell().transparent : false;
         render(); renderSwatches(); if (resetPalette) fit();
@@ -525,24 +524,9 @@
         const t = document.createElement("canvas");
         t.width = Math.max(1, Math.round(canvas.width * sc)); t.height = Math.max(1, Math.round(canvas.height * sc));
         const c = t.getContext("2d"); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high"; c.drawImage(canvas, 0, 0, t.width, t.height);
-        if (sc > 1) {
-          // Upscaling: sharpen edges a little (unsharp mask) so traced curves stay crisp.
-          try {
-            const b = document.createElement("canvas"); b.width = t.width; b.height = t.height;
-            const bc = b.getContext("2d"); bc.filter = "blur(1px)"; bc.drawImage(t, 0, 0);
-            const o = c.getImageData(0, 0, t.width, t.height), bl = bc.getImageData(0, 0, t.width, t.height).data, d = o.data;
-            for (let i = 0; i < d.length; i += 4) {
-              for (let k = 0; k < 3; k++) {
-                const diff = d[i + k] - bl[i + k];
-                if (diff > 8 || diff < -8) { const v = d[i + k] + 0.6 * diff; d[i + k] = v < 0 ? 0 : v > 255 ? 255 : v; }
-              }
-            }
-            c.putImageData(o, 0, 0);
-          } catch (e) { /* sharpening is optional */ }
-        }
         st.trace = t;
       }
-      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; binC.getContext("2d").drawImage(st.rawTrace, 0, 0); if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); st.trace = binC;
+      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
       st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null;
       fileEl.textContent = `${name || "image"}  ·  ${canvas.width} × ${canvas.height}`;
     }

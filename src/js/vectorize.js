@@ -1284,9 +1284,8 @@
   }
 
   function rgb01(hx) { return [1, 3, 5].map((i) => parseInt(hx.substr(i, 2), 16) / 255); }
-  function psPath(shape, s, H, ops, sy) {
+  function psPath(shape, s, H, ops, sy, W) {
     sy = sy || s;
-    const W = shape.__W;
     const X = (v) => f(Math.min(Math.max(v * s, 0), W === undefined ? Infinity : W));
     const Y = (v) => f(Math.min(Math.max(H - v * sy, 0), H));
     let out = "";
@@ -1306,9 +1305,8 @@
     let content = "";
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
-      it.shape.__W = W;
       content += `${f(r)} ${f(g)} ${f(b)} rg\n`;
-      content += psPath(it.shape, s, H, { m: "m", l: "l", c: "c", h: "h" }, sy);
+      content += psPath(it.shape, s, H, { m: "m", l: "l", c: "c", h: "h" }, sy, W);
       content += "f*\n";
     }
     const objs = [
@@ -1331,9 +1329,8 @@
     let ps = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${Math.round(W)} ${Math.round(H)}\n%%HiResBoundingBox: 0 0 ${W.toFixed(4)} ${H.toFixed(4)}\n%%Creator: Revector\n%%Pages: 1\n%%LanguageLevel: 2\n%%EndComments\n%%EndProlog\n%%Page: 1 1\n`;
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
-      it.shape.__W = W;
       ps += `${f(r)} ${f(g)} ${f(b)} setrgbcolor newpath\n`;
-      ps += psPath(it.shape, s, H, { m: "moveto", l: "lineto", c: "curveto", h: "closepath" }, sy);
+      ps += psPath(it.shape, s, H, { m: "moveto", l: "lineto", c: "curveto", h: "closepath" }, sy, W);
       ps += "eofill\n";
     }
     return sanitizeExport(ps + "showpage\n%%Trailer\n%%EOF\n", "eps");
