@@ -1,107 +1,162 @@
-/* Small original example pictures, drawn as pixels so the showcase can trace them live. */
+/* Original example pictures for the showcase, drawn as pixels so they can be traced live.
+   Each one shows something the tracer has to get right: close tints side by side, sharp tips,
+   true circles, thin line art, an interface icon, stripes, and hand-made curves. */
 (function () {
   "use strict";
   const TAU = Math.PI * 2;
+  // points may be given flat [x, y, x, y, ...] or as pairs [[x, y], ...]
+  function flat(pts) { return Array.isArray(pts[0]) ? pts.flat() : pts; }
+  function poly(c, pts, fill) {
+    const p = flat(pts);
+    c.beginPath(); c.moveTo(p[0], p[1]);
+    for (let i = 2; i < p.length; i += 2) c.lineTo(p[i], p[i + 1]);
+    c.closePath(); c.fillStyle = fill; c.fill();
+  }
   function circle(c, x, y, r, fill) { c.beginPath(); c.arc(x, y, r, 0, TAU); c.fillStyle = fill; c.fill(); }
-  function poly(c, pts, fill) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); c.fillStyle = fill; c.fill(); }
+  function ellipse(c, x, y, rx, ry, rot, fill) { c.beginPath(); c.ellipse(x, y, rx, ry, rot, 0, TAU); c.fillStyle = fill; c.fill(); }
   function rrect(c, x, y, w, h, r, fill) { c.beginPath(); c.roundRect(x, y, w, h, r); c.fillStyle = fill; c.fill(); }
   function bg(c, w, h, col) { c.fillStyle = col; c.fillRect(0, 0, w, h); }
+  function line(c, pts, width, col, cap) {
+    const p = flat(pts);
+    c.beginPath(); c.moveTo(p[0], p[1]);
+    for (let i = 2; i < p.length; i += 2) c.lineTo(p[i], p[i + 1]);
+    c.lineWidth = width; c.strokeStyle = col; c.lineCap = cap || "round"; c.lineJoin = "round"; c.stroke();
+  }
+  function ring(c, x, y, r, width, col) { c.beginPath(); c.arc(x, y, r, 0, TAU); c.lineWidth = width; c.strokeStyle = col; c.stroke(); }
 
   const list = [
-    { name: "coffee-cup", w: 132, h: 156, focus: [0.62, 0.55], draw(c, w, h) {
-      bg(c, w, h, "#f4e9d8");
-      c.strokeStyle = "#6b3f24"; c.lineWidth = 5; c.lineCap = "round";
-      [[46, 30], [66, 22], [86, 30]].forEach(([x, y]) => { c.beginPath(); c.moveTo(x, y + 26); c.bezierCurveTo(x - 8, y + 16, x + 8, y + 10, x, y); c.stroke(); });
-      circle(c, 66, 128, 52, "#e2c9a6"); c.save(); c.globalCompositeOperation = "source-over"; c.restore();
-      poly(c, [24, 66, 108, 66, 98, 126, 34, 126], "#c2410c");
-      c.beginPath(); c.arc(108, 92, 16, -1.3, 1.3); c.lineWidth = 8; c.strokeStyle = "#c2410c"; c.stroke();
-      rrect(c, 20, 60, 92, 10, 5, "#8a2f0a");
-      circle(c, 66, 98, 13, "#f4e9d8"); poly(c, [60, 92, 74, 98, 60, 104], "#c2410c");
+    // dawn sky in two close tints, a striped tower, light beams with sharp tips
+    { name: "lighthouse", w: 160, h: 120, focus: [0.42, 0.42], draw(c, w, h) {
+      bg(c, w, h, "#f6ead6");
+      poly(c, [0, 0, 160, 0, 160, 46, 0, 62], "#f1dcc0");
+      circle(c, 122, 58, 20, "#f4a259");
+      poly(c, [[66, 26], [0, 4], [0, 30]], "#fff6dc");
+      poly(c, [[66, 26], [160, 12], [160, 36]], "#fff6dc");
+      poly(c, [0, 78, 160, 70, 160, 120, 0, 120], "#2c5d8a");
+      c.beginPath(); c.moveTo(0, 88);
+      for (let x = 0; x <= 160; x += 20) c.quadraticCurveTo(x + 10, 82, x + 20, 88);
+      c.lineTo(160, 120); c.lineTo(0, 120); c.closePath(); c.fillStyle = "#3d78ab"; c.fill();
+      poly(c, [[30, 98], [42, 84], [96, 84], [110, 98], [104, 104], [36, 104]], "#4a4e5a");
+      poly(c, [[54, 86], [58, 34], [74, 34], [78, 86]], "#f8f4ec");
+      poly(c, [[55.6, 66], [56.6, 52], [75.4, 52], [76.4, 66]], "#d1495b");
+      poly(c, [[57.4, 44], [58, 36], [74, 36], [74.6, 44]], "#d1495b");
+      rrect(c, 54, 26, 24, 10, 2, "#1d2a3a");
+      rrect(c, 59, 28, 14, 6, 1, "#ffd166");
+      poly(c, [[52, 26], [66, 14], [80, 26]], "#1d2a3a");
+      line(c, [[112, 22], [116, 18], [120, 22]], 1.6, "#1d2a3a");
+      line(c, [[124, 28], [127, 25], [130, 28]], 1.6, "#1d2a3a");
     } },
-    { name: "sun-badge", w: 140, h: 150, focus: [0.5, 0.35], draw(c, w, h) {
-      bg(c, w, h, "#fbf6ec");
-      circle(c, 70, 75, 64, "#12182b");
-      for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; poly(c, [70 + Math.cos(a - 0.12) * 30, 75 + Math.sin(a - 0.12) * 30, 70 + Math.cos(a) * 54, 75 + Math.sin(a) * 54, 70 + Math.cos(a + 0.12) * 30, 75 + Math.sin(a + 0.12) * 30], "#f0b429"); }
-      circle(c, 70, 75, 28, "#f0b429"); circle(c, 62, 70, 4, "#12182b"); circle(c, 80, 70, 4, "#12182b");
-      c.beginPath(); c.arc(71, 80, 10, 0.2, Math.PI - 0.2); c.lineWidth = 3.5; c.strokeStyle = "#12182b"; c.stroke();
+    // a geometric fox: every outline is straight, every tip is sharp
+    { name: "fox", w: 140, h: 140, focus: [0.5, 0.45], draw(c, w, h) {
+      bg(c, w, h, "#fff7ec");
+      poly(c, [[24, 18], [58, 44], [30, 70]], "#e8702a");
+      poly(c, [[116, 18], [82, 44], [110, 70]], "#e8702a");
+      poly(c, [[30, 28], [50, 46], [34, 60]], "#3b2a24");
+      poly(c, [[110, 28], [90, 46], [106, 60]], "#3b2a24");
+      poly(c, [[22, 56], [70, 36], [118, 56], [70, 124]], "#e8702a");
+      poly(c, [[22, 56], [52, 70], [70, 124]], "#fbf3e6");
+      poly(c, [[118, 56], [88, 70], [70, 124]], "#fbf3e6");
+      poly(c, [[70, 36], [58, 58], [70, 70], [82, 58]], "#d15f1d");
+      poly(c, [[44, 72], [56, 66], [56, 76]], "#3b2a24");
+      poly(c, [[96, 72], [84, 66], [84, 76]], "#3b2a24");
+      poly(c, [[62, 108], [78, 108], [70, 120]], "#3b2a24");
     } },
-    { name: "mountain-badge", w: 146, h: 144, focus: [0.4, 0.5], draw(c, w, h) {
-      bg(c, w, h, "#ffffff");
-      circle(c, 73, 72, 68, "#2f5d50"); circle(c, 73, 72, 58, "#f6d9a8");
-      c.save(); c.beginPath(); c.arc(73, 72, 58, 0, TAU); c.clip();
-      circle(c, 96, 52, 14, "#e4572e");
-      poly(c, [0, 120, 46, 54, 86, 120], "#3d7a5f"); poly(c, [40, 120, 92, 44, 146, 120], "#2f5d50"); poly(c, [80, 61, 92, 44, 104, 61, 96, 58, 92, 64, 87, 58], "#ffffff");
-      poly(c, [0, 104, 146, 98, 146, 144, 0, 144], "#1f3f36");
+    // rounded pads, a terracotta pot in two tones and a flower
+    { name: "cactus", w: 120, h: 150, focus: [0.5, 0.4], draw(c, w, h) {
+      bg(c, w, h, "#eef6f0");
+      rrect(c, 46, 24, 28, 84, 14, "#3f8f5a");
+      rrect(c, 18, 52, 22, 40, 11, "#3f8f5a"); rrect(c, 26, 80, 26, 12, 6, "#3f8f5a");
+      rrect(c, 82, 40, 20, 36, 10, "#3f8f5a"); rrect(c, 68, 66, 24, 12, 6, "#3f8f5a");
+      rrect(c, 57, 30, 6, 72, 3, "#357a4c");
+      [[52, 40], [68, 50], [52, 62], [68, 74], [52, 86], [26, 62], [94, 50]].forEach(([x, y]) => line(c, [x - 3, y - 3, x + 3, y + 3], 1.6, "#e9f2e4"));
+      circle(c, 60, 22, 8, "#f28cb1"); circle(c, 60, 22, 3.5, "#ffd166");
+      poly(c, [[28, 112], [92, 112], [84, 146], [36, 146]], "#c8643b");
+      rrect(c, 24, 104, 72, 12, 3, "#a9512f");
+    } },
+    // ellipses, a ringed window, fins and a two-colour flame on a starry sky
+    { name: "rocket", w: 130, h: 150, focus: [0.5, 0.45], draw(c, w, h) {
+      bg(c, w, h, "#1b1f3a");
+      [[18, 20, 1.6], [104, 30, 2], [26, 96, 1.4], [110, 110, 1.8], [64, 12, 1.2], [96, 70, 1.3], [16, 136, 1.5]].forEach(([x, y, r]) => circle(c, x, y, r, "#fdf6e3"));
+      poly(c, [[44, 88], [26, 116], [46, 110]], "#e4572e");
+      poly(c, [[86, 88], [104, 116], [84, 110]], "#e4572e");
+      poly(c, [[52, 114], [78, 114], [72, 142], [65, 130], [58, 142]], "#f0b429");
+      poly(c, [[58, 114], [72, 114], [68, 130], [65, 124], [62, 130]], "#e4572e");
+      c.beginPath(); c.moveTo(65, 14); c.bezierCurveTo(92, 36, 92, 86, 82, 116); c.lineTo(48, 116); c.bezierCurveTo(38, 86, 38, 36, 65, 14); c.closePath(); c.fillStyle = "#eef1f6"; c.fill();
+      c.beginPath(); c.moveTo(65, 14); c.bezierCurveTo(78, 24, 84, 34, 86, 42); c.lineTo(44, 42); c.bezierCurveTo(46, 34, 52, 24, 65, 14); c.closePath(); c.fillStyle = "#e4572e"; c.fill();
+      circle(c, 65, 66, 15, "#8c97ad"); circle(c, 65, 66, 10.5, "#3ba6c4"); circle(c, 61, 62, 3.4, "#bfe6f2");
+      rrect(c, 58, 100, 14, 16, 2, "#8c97ad");
+    } },
+    // long smooth curves: a whale with its belly, tail and spout
+    { name: "whale", w: 160, h: 120, focus: [0.45, 0.55], draw(c, w, h) {
+      bg(c, w, h, "#e6f4f8");
+      c.beginPath(); c.moveTo(18, 70); c.bezierCurveTo(18, 38, 60, 30, 92, 40); c.bezierCurveTo(112, 46, 122, 58, 128, 62);
+      c.bezierCurveTo(134, 52, 142, 42, 152, 40); c.bezierCurveTo(148, 52, 144, 60, 146, 70); c.bezierCurveTo(150, 76, 154, 84, 154, 92);
+      c.bezierCurveTo(142, 86, 134, 80, 124, 80); c.bezierCurveTo(106, 98, 66, 104, 40, 96); c.bezierCurveTo(26, 92, 18, 84, 18, 70); c.closePath(); c.fillStyle = "#2f6f9f"; c.fill();
+      c.beginPath(); c.moveTo(22, 78); c.bezierCurveTo(44, 88, 84, 90, 116, 80); c.bezierCurveTo(98, 96, 62, 100, 40, 94); c.bezierCurveTo(30, 90, 24, 86, 22, 78); c.closePath(); c.fillStyle = "#cfe6f2"; c.fill();
+      circle(c, 42, 62, 4, "#12182b"); circle(c, 43, 61, 1.3, "#ffffff");
+      c.beginPath(); c.moveTo(70, 70); c.bezierCurveTo(74, 80, 82, 80, 86, 74); c.lineWidth = 2.4; c.strokeStyle = "#1f557d"; c.lineCap = "round"; c.stroke();
+      line(c, [[60, 34], [56, 20]], 3, "#7cc3e0"); line(c, [[62, 34], [64, 16]], 3, "#7cc3e0"); line(c, [[64, 34], [72, 22]], 3, "#7cc3e0");
+      c.beginPath(); c.moveTo(0, 108);
+      for (let x = 0; x <= 160; x += 16) c.quadraticCurveTo(x + 8, 102, x + 16, 108);
+      c.lineTo(160, 120); c.lineTo(0, 120); c.closePath(); c.fillStyle = "#7cc3e0"; c.fill();
+    } },
+    // a striped sunset over hills: parallel cuts through one circle
+    { name: "retro-sun", w: 150, h: 120, focus: [0.5, 0.5], draw(c, w, h) {
+      bg(c, w, h, "#fdf0d5");
+      const cols = ["#f7b538", "#f08a24", "#e4572e", "#c1272d"];
+      c.save(); c.beginPath(); c.arc(75, 78, 50, Math.PI, 0); c.closePath(); c.clip();
+      for (let i = 0; i < 4; i++) { c.fillStyle = cols[i]; c.fillRect(0, 28 + i * 13, 150, 13 - (i ? 3 : 0)); }
       c.restore();
+      c.beginPath(); c.moveTo(0, 86); c.bezierCurveTo(30, 70, 50, 70, 78, 84); c.bezierCurveTo(100, 74, 126, 72, 150, 82); c.lineTo(150, 120); c.lineTo(0, 120); c.closePath(); c.fillStyle = "#3a2e5c"; c.fill();
+      c.beginPath(); c.moveTo(0, 102); c.bezierCurveTo(40, 92, 90, 96, 150, 104); c.lineTo(150, 120); c.lineTo(0, 120); c.closePath(); c.fillStyle = "#251c40"; c.fill();
     } },
-    { name: "paper-plane", w: 156, h: 140, focus: [0.55, 0.45], draw(c, w, h) {
-      bg(c, w, h, "#dcebf1");
-      c.strokeStyle = "#3ba6c4"; c.lineWidth = 4; c.setLineDash([8, 8]); c.beginPath(); c.moveTo(10, 120); c.bezierCurveTo(40, 80, 60, 130, 84, 84); c.stroke(); c.setLineDash([]);
-      poly(c, [60, 76, 146, 22, 104, 110], "#ffffff"); poly(c, [84, 84, 146, 22, 92, 112], "#b9c0cc"); poly(c, [60, 76, 146, 22, 84, 84], "#f6f7f4");
-    } },
-    { name: "pine-badge", w: 140, h: 140, focus: [0.5, 0.45], draw(c, w, h) {
+    // an interface icon: rounded rectangles and concentric circles
+    { name: "camera-icon", w: 140, h: 120, focus: [0.5, 0.55], draw(c, w, h) {
       bg(c, w, h, "#ffffff");
-      circle(c, 70, 70, 66, "#17723f"); circle(c, 70, 70, 56, "#ffffff"); circle(c, 70, 70, 52, "#17723f");
-      poly(c, [70, 22, 92, 56, 80, 56, 100, 84, 84, 84, 106, 110, 34, 110, 56, 84, 40, 84, 60, 56, 48, 56], "#ffffff");
-      rrect(c, 64, 108, 12, 14, 2, "#ffffff");
+      rrect(c, 46, 18, 34, 16, 5, "#12182b");
+      rrect(c, 14, 28, 112, 78, 16, "#12182b");
+      rrect(c, 96, 38, 18, 9, 3, "#f0b429");
+      circle(c, 70, 68, 30, "#f6f7f4");
+      circle(c, 70, 68, 22, "#3ba6c4");
+      circle(c, 70, 68, 12, "#12182b");
+      circle(c, 64, 62, 4, "#ffffff");
     } },
-    { name: "chili-pepper", w: 150, h: 136, focus: [0.45, 0.55], draw(c, w, h) {
-      bg(c, w, h, "#fff4e8");
-      c.beginPath(); c.moveTo(108, 34); c.bezierCurveTo(140, 60, 120, 120, 30, 120); c.bezierCurveTo(70, 104, 84, 70, 86, 40); c.closePath(); c.fillStyle = "#b42340"; c.fill();
-      c.beginPath(); c.moveTo(100, 44); c.bezierCurveTo(116, 60, 112, 84, 96, 96); c.lineWidth = 5; c.strokeStyle = "#e4572e"; c.stroke();
-      poly(c, [84, 36, 110, 30, 104, 44, 90, 46], "#2f9e6a");
-      c.beginPath(); c.moveTo(98, 34); c.bezierCurveTo(98, 20, 106, 12, 118, 10); c.lineWidth = 6; c.strokeStyle = "#2f9e6a"; c.lineCap = "round"; c.stroke();
+    // thin line art: two wheels, a frame and handlebars drawn as strokes
+    { name: "bicycle", w: 160, h: 110, focus: [0.5, 0.6], draw(c, w, h) {
+      bg(c, w, h, "#f7f4ee");
+      ring(c, 38, 72, 26, 4, "#12182b"); ring(c, 122, 72, 26, 4, "#12182b");
+      circle(c, 38, 72, 3, "#12182b"); circle(c, 122, 72, 3, "#12182b");
+      line(c, [[38, 72], [70, 72], [104, 40], [60, 40], [38, 72]], 4.5, "#e4572e");
+      line(c, [[70, 72], [56, 30]], 4.5, "#e4572e");
+      line(c, [[104, 40], [122, 72]], 4.5, "#e4572e");
+      line(c, [[104, 40], [100, 26], [112, 22]], 4, "#12182b");
+      rrect(c, 46, 25, 22, 7, 3.5, "#12182b");
+      circle(c, 70, 72, 6, "#12182b"); line(c, [[70, 72], [76, 82]], 3, "#12182b");
     } },
-    { name: "donut", w: 146, h: 146, focus: [0.4, 0.4], draw(c, w, h) {
-      bg(c, w, h, "#f6f7f4");
-      circle(c, 73, 76, 58, "#d9a066");
-      c.beginPath(); for (let i = 0; i <= 40; i++) { const a = i / 40 * TAU, r = 50 + Math.sin(i * 1.7) * 5; i ? c.lineTo(73 + Math.cos(a) * r, 74 + Math.sin(a) * r) : c.moveTo(73 + Math.cos(a) * r, 74 + Math.sin(a) * r); } c.closePath(); c.fillStyle = "#f28cb1"; c.fill();
-      circle(c, 73, 76, 18, "#f6f7f4");
-      const sp = ["#3ba6c4", "#f0b429", "#ffffff", "#2f9e6a"];
-      [[50, 50, .4], [92, 46, 1.2], [108, 78, .2], [42, 92, 2], [62, 112, .9], [96, 106, 2.4], [70, 40, 1.8], [114, 58, .7]].forEach(([x, y, a], i) => { c.save(); c.translate(x, y); c.rotate(a); rrect(c, -6, -2, 12, 4, 2, sp[i % 4]); c.restore(); });
+    // a slice with crust, cheese drips and round toppings
+    { name: "pizza", w: 140, h: 140, focus: [0.5, 0.45], draw(c, w, h) {
+      bg(c, w, h, "#fff5e6");
+      c.beginPath(); c.moveTo(70, 128); c.lineTo(18, 30); c.quadraticCurveTo(70, 4, 122, 30); c.closePath(); c.fillStyle = "#f6d365"; c.fill();
+      c.beginPath(); c.moveTo(14, 28); c.quadraticCurveTo(70, -2, 126, 28); c.lineTo(122, 38); c.quadraticCurveTo(70, 12, 18, 38); c.closePath(); c.fillStyle = "#d9963a"; c.fill();
+      c.beginPath(); c.moveTo(40, 72); c.quadraticCurveTo(44, 92, 50, 86); c.lineTo(52, 74); c.closePath(); c.fillStyle = "#f6d365"; c.fill();
+      [[52, 44, 9], [86, 48, 8], [70, 74, 8], [62, 100, 6]].forEach(([x, y, r]) => circle(c, x, y, r, "#c0392b"));
+      [[74, 36], [46, 64], [92, 70]].forEach(([x, y]) => ring(c, x, y, 3.6, 2.4, "#2f3a2f"));
+      [[60, 60], [96, 40], [80, 92]].forEach(([x, y]) => ellipse(c, x, y, 4, 2.2, 0.6, "#4f9a52"));
     } },
-    { name: "night-harbor", w: 160, h: 118, focus: [0.6, 0.6], draw(c, w, h) {
-      bg(c, w, h, "#0c1424");
-      poly(c, [0, 0, 60, 0, 40, 118, 0, 118], "#163a5c");
-      rrect(c, 4, 10, 30, 52, 2, "#2b6b4f"); rrect(c, 8, 16, 22, 40, 2, "#0f2a40"); rrect(c, 2, 64, 6, 54, 1, "#f3b56b");
-      c.beginPath(); c.moveTo(60, 0); c.bezierCurveTo(80, 30, 100, 40, 160, 46); c.lineTo(160, 0); c.closePath(); c.fillStyle = "#0a1220"; c.fill();
-      c.beginPath(); c.moveTo(46, 54); c.bezierCurveTo(70, 20, 110, 10, 128, 0); c.lineTo(150, 0); c.bezierCurveTo(130, 40, 120, 70, 140, 118); c.lineTo(96, 118); c.bezierCurveTo(98, 90, 80, 70, 46, 54); c.closePath(); c.fillStyle = "#1f4f7a"; c.fill();
-      c.beginPath(); c.moveTo(70, 66); c.bezierCurveTo(110, 64, 140, 90, 156, 118); c.lineTo(146, 118); c.bezierCurveTo(130, 92, 108, 74, 70, 66); c.closePath(); c.fillStyle = "#c9a57a"; c.fill();
-      circle(c, 120, 26, 7, "#f3e3b5");
-      c.strokeStyle = "#7fa6b8"; c.lineWidth = 1.2; c.beginPath(); c.moveTo(40, 30); c.lineTo(58, 8); c.stroke();
-    } },
-    { name: "night-owl", w: 130, h: 150, focus: [0.5, 0.42], draw(c, w, h) {
-      bg(c, w, h, "#e9eef5");
-      c.beginPath(); c.ellipse(65, 86, 48, 58, 0, 0, TAU); c.fillStyle = "#4b5470"; c.fill();
-      poly(c, [22, 50, 30, 18, 50, 38], "#4b5470"); poly(c, [108, 50, 100, 18, 80, 38], "#4b5470");
-      c.beginPath(); c.ellipse(65, 104, 30, 34, 0, 0, TAU); c.fillStyle = "#dcebf1"; c.fill();
-      circle(c, 46, 62, 17, "#ffffff"); circle(c, 84, 62, 17, "#ffffff"); circle(c, 46, 62, 8, "#12182b"); circle(c, 84, 62, 8, "#12182b"); circle(c, 49, 59, 2.5, "#ffffff"); circle(c, 87, 59, 2.5, "#ffffff");
-      poly(c, [58, 76, 72, 76, 65, 90], "#f0b429");
-      [[52, 100], [65, 108], [78, 100], [58, 118], [72, 118]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 5, 0.2, Math.PI - 0.2); c.lineWidth = 2; c.strokeStyle = "#4b5470"; c.stroke(); });
-    } },
-    { name: "cloud-sync", w: 150, h: 140, focus: [0.5, 0.5], draw(c, w, h) {
+    // a round camping badge: rings, a tent, pines and a crescent moon
+    { name: "camping-badge", w: 140, h: 140, focus: [0.5, 0.55], draw(c, w, h) {
       bg(c, w, h, "#ffffff");
-      rrect(c, 28, 86, 94, 40, 6, "#d5d9e0"); rrect(c, 34, 92, 82, 28, 3, "#3ba6c4"); poly(c, [18, 126, 132, 126, 140, 134, 10, 134], "#b9c0cc");
-      circle(c, 58, 52, 22, "#eaf3f6"); circle(c, 84, 44, 28, "#eaf3f6"); circle(c, 108, 58, 18, "#eaf3f6"); rrect(c, 40, 52, 84, 26, 13, "#eaf3f6");
-      c.strokeStyle = "#0b7894"; c.lineWidth = 4; c.lineCap = "round"; c.beginPath(); c.moveTo(75, 82); c.lineTo(75, 56); c.moveTo(66, 64); c.lineTo(75, 54); c.lineTo(84, 64); c.stroke();
+      circle(c, 70, 70, 66, "#2f5d50"); circle(c, 70, 70, 58, "#f6d9a8");
+      c.save(); c.beginPath(); c.arc(70, 70, 58, 0, TAU); c.clip();
+      poly(c, [[0, 104], [40, 62], [70, 90], [100, 56], [140, 104], [140, 140], [0, 140]], "#8fb3a3");
+      poly(c, [[0, 112], [140, 112], [140, 140], [0, 140]], "#2f5d50");
+      c.restore();
+      circle(c, 96, 40, 10, "#fdf6e3"); circle(c, 101, 36, 9, "#f6d9a8");
+      poly(c, [[52, 112], [70, 74], [88, 112]], "#d94f30");
+      poly(c, [[64, 112], [70, 96], [76, 112]], "#3a2b24");
+      [[30, 112, 26], [112, 112, 22]].forEach(([x, y, hh]) => { poly(c, [[x - 9, y - 6], [x, y - hh], [x + 9, y - 6]], "#1f4038"); poly(c, [[x - 11, y + 2], [x, y - hh + 10], [x + 11, y + 2]], "#1f4038"); });
     } },
-    { name: "geometric-shapes", w: 160, h: 140, focus: [0.48, 0.5], draw(c, w, h) {
-      bg(c, w, h, "#f6f7f4");
-      circle(c, 56, 62, 34, "#3ba6c4"); poly(c, [70, 120, 112, 30, 150, 120], "#e4572e"); poly(c, [16, 120, 52, 84, 88, 120], "#12182b");
-      c.save(); c.globalAlpha = 1; c.beginPath(); c.arc(56, 62, 34, 0, TAU); c.clip(); poly(c, [70, 120, 112, 30, 150, 120], "#7a5c8a"); c.restore();
-      rrect(c, 112, 14, 30, 30, 4, "#f0b429");
-    } },
-    { name: "bubble-tea", w: 118, h: 156, focus: [0.5, 0.7], draw(c, w, h) {
-      bg(c, w, h, "#fdf3dd");
-      rrect(c, 64, 6, 10, 60, 3, "#e4572e");
-      poly(c, [20, 46, 98, 46, 88, 146, 30, 146], "#e9d3b0");
-      c.beginPath(); c.ellipse(59, 46, 42, 10, 0, 0, TAU); c.fillStyle = "#f1eee6"; c.fill();
-      for (let i = 0; i < 12; i++) circle(c, 36 + (i % 6) * 9.5, 126 + Math.floor(i / 6) * 10 - (i % 2) * 3, 4.6, "#3a2a24");
-      circle(c, 46, 92, 3.5, "#12182b"); circle(c, 72, 92, 3.5, "#12182b");
-      c.beginPath(); c.arc(59, 98, 5, 0.3, Math.PI - 0.3); c.lineWidth = 2; c.strokeStyle = "#12182b"; c.stroke();
-      circle(c, 40, 100, 4, "#f28cb1"); circle(c, 78, 100, 4, "#f28cb1");
-    } },
-    { name: "calligraphy", w: 160, h: 110, focus: [80, 55], draw(c, w, h) {
+    { name: "calligraphy", w: 160, h: 110, focus: [0.5, 0.5], draw(c, w, h) {
       bg(c, w, h, "#fbf8f1");
       c.fillStyle = "#151515";
       c.beginPath();
@@ -119,29 +174,18 @@
       c.bezierCurveTo(110, 92, 60, 92, 20, 96); c.closePath(); c.fill();
       circle(c, 104, 28, 4, "#151515"); circle(c, 140, 30, 3, "#151515");
     } },
-    { name: "mascot", w: 140, h: 140, focus: [70, 70], draw(c, w, h) {
+    { name: "mascot", w: 140, h: 140, focus: [0.5, 0.5], draw(c, w, h) {
       bg(c, w, h, "#e9f6ff");
       circle(c, 40, 34, 17, "#1d1d2b"); circle(c, 100, 34, 17, "#1d1d2b");
       circle(c, 40, 34, 12, "#f59e0b"); circle(c, 100, 34, 12, "#f59e0b");
       circle(c, 70, 78, 50, "#1d1d2b");
       circle(c, 70, 78, 45, "#f59e0b");
-      c.fillStyle = "#fde68a"; c.beginPath(); c.ellipse(70, 92, 28, 22, 0, 0, TAU); c.fill();
+      ellipse(c, 70, 92, 28, 22, 0, "#fde68a");
       circle(c, 52, 66, 10, "#ffffff"); circle(c, 88, 66, 10, "#ffffff");
       circle(c, 54, 68, 5, "#1d1d2b"); circle(c, 90, 68, 5, "#1d1d2b");
       poly(c, [[64, 82], [76, 82], [70, 89]], "#1d1d2b");
       c.fillStyle = "#e11d48"; c.beginPath(); c.ellipse(70, 99, 9, 5, 0, 0, Math.PI); c.fill();
       circle(c, 40, 88, 6, "#fb7185"); circle(c, 100, 88, 6, "#fb7185");
-    } },
-    { name: "geo-badge", w: 140, h: 140, focus: [70, 70], draw(c, w, h) {
-      bg(c, w, h, "#ffffff");
-      const hex = (r) => { const p = []; for (let i = 0; i < 6; i++) { const a = TAU * i / 6 - Math.PI / 2; p.push([70 + r * Math.cos(a), 70 + r * Math.sin(a)]); } return p; };
-      poly(c, hex(64), "#0f3d5e");
-      poly(c, hex(54), "#f2c14e");
-      circle(c, 70, 70, 42, "#0f3d5e");
-      circle(c, 70, 70, 34, "#e8eef3");
-      const st = []; for (let i = 0; i < 10; i++) { const a = TAU * i / 10 - Math.PI / 2, r = i % 2 ? 12 : 28; st.push([70 + r * Math.cos(a), 70 + r * Math.sin(a)]); }
-      poly(c, st, "#d94f30");
-      poly(c, [[40, 118], [70, 104], [100, 118], [100, 128], [70, 114], [40, 128]], "#d94f30");
     } }
   ];
 
@@ -156,5 +200,5 @@
     return cv;
   }
 
-  window.RevectorExamples = { list, render, defaultIndex: 7 };
+  window.RevectorExamples = { list, render, defaultIndex: 0 };
 })();

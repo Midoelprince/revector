@@ -209,6 +209,12 @@
   // tracing: bilateral denoise -> Otsu snap (binarizeImageData) -> clustering -> per-color signed
   // distance fields, smoothed without letting any source pixel change color, interpolated at 4x.
   const RECON_MAX = 800, RECON_SCALE = 4;
+  // Straight pixel runs at least this long get their edge placed from the anti-aliasing (shorter
+  // runs belong to slanted or curved edges, where the run midpoints already sit on the edge).
+  const SUBPIXEL_MIN_RUN = 8;
+  // Adaptive simplification: borders between colours closer than SOFT_HI (RGB-like distance) get a
+  // looser fit, up to SOFT_MAX times the tolerance at SOFT_LO and below.
+  const SOFT_LO = 14, SOFT_HI = 48, SOFT_MAX = 3;
   // Fitting at 4x: the 1/4 keeps the per-source-pixel tolerance; the SDF already removed staircases.
   const RECON_ERR = 0.25;
 
@@ -381,6 +387,9 @@
   }
 
   // ---------------- 2. clustering ----------------
+  // "Real share" means at least 1% of the picture, held mostly in one sharp histogram peak, so the
+  // steps of a smooth gradient (spread thinly over many bins) still merge as before.
+  const BIG_SHARE = 0.01, KEEP_D2 = 9 * 9 * 0.6, PEAK_SHARE = 0.5;
   function buildBins(data, n) {
     const count = new Uint32Array(32768), sr = new Float64Array(32768), sg = new Float64Array(32768), sb = new Float64Array(32768);
     let opaque = 0;
@@ -390,13 +399,30 @@
       const k = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
       count[k]++; sr[k] += r; sg[k] += g; sb[k] += b; opaque++;
     }
-    const keys = [], cols = [], wts = [];
+    const keys = [], cols = [], wts = [], peak = [];
     for (let k = 0; k < 32768; k++) {
       if (!count[k]) continue;
       keys.push(k); wts.push(count[k]);
       cols.push([sr[k] / count[k], sg[k] / count[k], sb[k] / count[k]]);
+      // how much of the nearby colour mass sits in this one bin: high for flat paint (even with
+      // anti-aliasing or JPEG noise around it), low for a step inside a smooth gradient
+      const r5 = k >> 10, g5 = (k >> 5) & 31, b5 = k & 31;
+      // (a neighbour heavier than this bin means it is the shoulder of another colour: no peak;
+      // lighter neighbours are the spread around this one)
+      let around = count[k], top = true;
+      for (let dr = -1; dr <= 1; dr++) for (let dg = -1; dg <= 1; dg++) for (let db = -1; db <= 1; db++) {
+        const r = r5 + dr, g = g5 + dg, b = b5 + db;
+        if ((!dr && !dg && !db) || r < 0 || g < 0 || b < 0 || r > 31 || g > 31 || b > 31) continue;
+        const nk = (r << 10) | (g << 5) | b, c = count[nk];
+        if (!c) continue;
+        // only a neighbour with nearly this colour is part of the same paint
+        const dr0 = sr[nk] / c - sr[k] / count[k], dg0 = sg[nk] / c - sg[k] / count[k], db0 = sb[nk] / c - sb[k] / count[k];
+        if (dr0 * dr0 * 0.3 + dg0 * dg0 * 0.59 + db0 * db0 * 0.11 >= KEEP_D2) continue;
+        if (c > count[k]) top = false; else around += c;
+      }
+      peak.push(top ? count[k] / around : 0);
     }
-    return { keys, cols, wts, opaque };
+    return { keys, cols, wts, peak, opaque };
   }
   function kmeans(bins, centers, iters) {
     const { cols, wts } = bins;
@@ -417,13 +443,29 @@
     }
     return centers;
   }
+  // Two colours that each cover a real share of the picture are different paint, not noise or an
+  // anti-aliasing blend, even when they are close (white next to a pale tint): they stay apart
+  // unless they are nearly identical.
+  // per centre: is it solid paint, i.e. a big colour whose single largest bin is a sharp peak
+  function solidCenters(bins, centers) {
+    const wt = new Array(centers.length).fill(0), top = new Array(centers.length).fill(-1);
+    for (let i = 0; i < bins.cols.length; i++) {
+      const j = nearest(bins.cols[i], centers);
+      wt[j] += bins.wts[i];
+      if (top[j] < 0 || bins.wts[i] > bins.wts[top[j]]) top[j] = i;
+    }
+    const big = Math.max(1, bins.opaque * BIG_SHARE);
+    return wt.map((w, j) => w >= big && top[j] >= 0 && bins.peak[top[j]] >= PEAK_SHARE && bins.wts[top[j]] >= 0.3 * w);
+  }
   function mergeClose(bins, centers, thr) {
     let changed = true;
     while (changed && centers.length > 1) {
       changed = false;
+      const solid = solidCenters(bins, centers);
       outer: for (let a = 0; a < centers.length; a++) {
         for (let b = a + 1; b < centers.length; b++) {
-          if (dist2(centers[a], centers[b]) < thr) {
+          const d = dist2(centers[a], centers[b]);
+          if (d < thr && (d < KEEP_D2 || !solid[a] || !solid[b])) {
             centers[a] = [(centers[a][0] + centers[b][0]) / 2, (centers[a][1] + centers[b][1]) / 2, (centers[a][2] + centers[b][2]) / 2];
             centers.splice(b, 1); changed = true; break outer;
           }
@@ -442,7 +484,8 @@
       const c = bins.cols[i], w = bins.wts[i];
       let j = -1, bd = Infinity;
       for (let q = 0; q < centers.length; q++) { const d = dist2(c, centers[q]); if (d < bd) { bd = d; j = q; } }
-      if (j >= 0 && (bd < mergeD || w < minCount || centers.length >= 32)) {
+      const ownColor = w >= bins.opaque * BIG_SHARE && bins.peak[i] >= PEAK_SHARE && bd >= KEEP_D2;
+      if (j >= 0 && ((bd < mergeD && !ownColor) || w < minCount || centers.length >= 32)) {
         const tw = weights[j] + w;
         centers[j] = [(centers[j][0] * weights[j] + c[0] * w) / tw, (centers[j][1] * weights[j] + c[1] * w) / tw, (centers[j][2] * weights[j] + c[2] * w) / tw];
         weights[j] = tw;
@@ -863,13 +906,18 @@
 
   // Midpoints of the maximal straight pixel runs between vertex a and vertex b (indices may pass n).
   // On a stair-stepped edge these midpoints sit on the true edge line, unlike the step corners.
-  function runMids(px, py, a, b, n, xs, ys) {
+  function runMids(px, py, a, b, n, xs, ys, refine) {
     let s = a;
     const dir = (i) => { const p = i % n, q = (i + 1) % n; return (Math.sign(px[q] - px[p]) + 1) * 3 + (Math.sign(py[q] - py[p]) + 1); };
     for (let i = a; i < b; i++) {
       if (i + 1 === b || dir(i + 1) !== dir(i)) {
         const p = s % n, q = (i + 1) % n;
-        xs.push((px[p] + px[q]) / 2); ys.push((py[p] + py[q]) / 2);
+        let mx = (px[p] + px[q]) / 2, my = (py[p] + py[q]) / 2;
+        if (refine && Math.abs(px[q] - px[p]) + Math.abs(py[q] - py[p]) >= refine.minRun) {
+          if (py[p] === py[q]) my += refine.h(Math.min(px[p], px[q]), Math.max(px[p], px[q]), py[p]);
+          else if (px[p] === px[q]) mx += refine.v(px[p], Math.min(py[p], py[q]), Math.max(py[p], py[q]));
+        }
+        xs.push(mx); ys.push(my);
         s = i + 1;
       }
     }
@@ -1267,6 +1315,11 @@
     if (!closed) { cidx.push(0); for (let i = 1; i < n - 1; i++) if (corners[i]) cidx.push(i); cidx.push(n - 1); }
     else for (let i = 0; i < n; i++) if (corners[i]) cidx.push(i);
     const smooth = Math.max(0, settings.smooth - 1);
+    // Corner positions, moved off the pixel grid by the runs that meet there (chain ends stay put:
+    // they are shared with other chains and must match exactly).
+    const cx = new Float64Array(n), cy = new Float64Array(n);
+    for (let i = 0; i < n; i++) { cx[i] = px[i]; cy[i] = py[i]; }
+    if (settings.refine) for (const i of cidx) if (closed || (i > 0 && i < n - 1)) cornerShift(px, py, n, closed, i, settings.refine, cx, cy);
     // kept in grid units on purpose: scaling it with the 4x reconstruction measured worse (0.29 vs 0.25 px)
     const dpTol = settings.iconLogoMode ? 0.55 : 0.25;
 
@@ -1276,7 +1329,7 @@
       const d0 = (i) => { const p = i % n, q = (i + 1) % n; return (px[q] - px[p]) * 3 + (py[q] - py[p]); };
       for (let i = 0; i < n; i++) if (d0(i) !== d0(i + n - 1)) { s0 = i; break; }
       let xs = [], ys = [];
-      runMids(px, py, s0, s0 + n, n, xs, ys);
+      runMids(px, py, s0, s0 + n, n, xs, ys, settings.refine);
       if (xs.length < 4) { xs.length = 0; ys.length = 0; for (let i = 0; i < n; i++) { const j = (i + 1) % n; xs.push((px[i] + px[j]) / 2); ys.push((py[i] + py[j]) / 2); } }
       smoothClosed(xs, ys, smooth);
       if (xs.length > 8) {
@@ -1294,9 +1347,9 @@
     const count = closed ? cidx.length : cidx.length - 1;
     for (let c = 0; c < count; c++) {
       const a = cidx[c], b = closed ? (c + 1 < cidx.length ? cidx[c + 1] : cidx[0] + n) : cidx[c + 1];
-      let xs = [px[a % n]], ys = [py[a % n]];
-      runMids(px, py, a, b, n, xs, ys);
-      xs.push(px[b % n]); ys.push(py[b % n]);
+      let xs = [cx[a % n]], ys = [cy[a % n]];
+      runMids(px, py, a, b, n, xs, ys, settings.refine);
+      xs.push(cx[b % n]); ys.push(cy[b % n]);
       const runPrim = settings.shapes !== false && fitRunPrimitive(xs, ys, settings);
       if (runPrim) { for (const g of runPrim) segs.push(g); continue; }
       smoothOpen(xs, ys, smooth);
@@ -1311,7 +1364,92 @@
         fitCubic(xs, ys, 0, last, endTangent(xs, ys, 0, 1, last), endTangent(xs, ys, last, -1, 0), settings.err, segs, 0, settings.lineErr);
       }
     }
-    return postSimplifySegs([px[cidx[0] % n], py[cidx[0] % n]], segs, closed, settings);
+    return postSimplifySegs([cx[cidx[0] % n], cy[cidx[0] % n]], segs, closed, settings);
+  }
+
+  // The straight pixel run that ends (dir -1) or starts (dir +1) at vertex i, as [from, to] indices.
+  function runAt(px, py, n, closed, i, dir) {
+    const at = (k) => closed ? ((k % n) + n) % n : k;
+    if (!closed && (i + dir < 0 || i + dir > n - 1)) return null;
+    const step = (k) => { const p = at(k), q = at(k + dir); return [Math.sign(px[q] - px[p]), Math.sign(py[q] - py[p])]; };
+    const d0 = step(i);
+    let j = i + dir, guard = 0;
+    while (guard++ < n) {
+      if (!closed && (j + dir < 0 || j + dir > n - 1)) break;
+      const d = step(j);
+      if (d[0] !== d0[0] || d[1] !== d0[1]) break;
+      j += dir;
+    }
+    return [at(i), at(j)];
+  }
+  function cornerShift(px, py, n, closed, i, refine, cx, cy) {
+    let sx = 0, sy = 0, kx = 0, ky = 0;
+    for (const dir of [-1, 1]) {
+      const r = runAt(px, py, n, closed, i, dir);
+      if (!r) continue;
+      const p = r[0], q = r[1];
+      if (Math.abs(px[q] - px[p]) + Math.abs(py[q] - py[p]) < refine.minRun) continue;
+      if (py[p] === py[q] && px[p] !== px[q]) { sy += refine.h(Math.min(px[p], px[q]), Math.max(px[p], px[q]), py[p]); ky++; }
+      else if (px[p] === px[q] && py[p] !== py[q]) { sx += refine.v(px[p], Math.min(py[p], py[q]), Math.max(py[p], py[q])); kx++; }
+    }
+    if (kx) cx[i] = px[i] + sx / kx;
+    if (ky) cy[i] = py[i] + sy / ky;
+  }
+
+  // Sub-pixel edge placement for pictures traced at their own size. Each boundary between two
+  // labels runs along the pixel grid; the anti-aliased colours of the pixels on both sides tell
+  // how far the real edge sits from that grid line. Colours are compared premultiplied by alpha,
+  // so soft edges against transparency work the same way.
+  function makeRefiner(labels, data, w, h, colorOf, minRun) {
+    const MAXSHIFT = 0.6;
+    const pre = (i) => { const p = i * 4, a = data[p + 3] / 255; return [data[p] * a, data[p + 1] * a, data[p + 2] * a, data[p + 3]]; };
+    const pal = new Map();
+    const col = (l) => { let c = pal.get(l); if (!c) { c = colorOf(l); pal.set(l, c); } return c; };
+    // share of colour cb inside pixel colour p that otherwise belongs to ca, or -1 when unclear
+    function frac(p, ca, cb) {
+      const d0 = cb[0] - ca[0], d1 = cb[1] - ca[1], d2 = cb[2] - ca[2], d3 = cb[3] - ca[3];
+      const dd = d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3;
+      if (dd < 1600) return -1;
+      const e0 = p[0] - ca[0], e1 = p[1] - ca[1], e2 = p[2] - ca[2], e3 = p[3] - ca[3];
+      const t = (e0 * d0 + e1 * d1 + e2 * d2 + e3 * d3) / dd;
+      const r0 = e0 - t * d0, r1 = e1 - t * d1, r2 = e2 - t * d2, r3 = e3 - t * d3;
+      // a pixel far off the line between the two colours is mixed with something else: skip it
+      if (r0 * r0 + r1 * r1 + r2 * r2 + r3 * r3 > 0.06 * dd + 900) return -1;
+      return t < 0 ? 0 : t > 1 ? 1 : t;
+    }
+    // offset of the edge between pixel A and pixel B, measured from their shared side towards B
+    function pair(ia, ib) {
+      const la = labels[ia], lb = labels[ib];
+      if (la === lb) return null;
+      const ca = col(la), cb = col(lb);
+      const ta = frac(pre(ia), ca, cb), tb = frac(pre(ib), cb, ca);
+      if (ta < 0 && tb < 0) return null;
+      return (tb < 0 ? 0 : tb) - (ta < 0 ? 0 : ta);
+    }
+    function avg(list) {
+      let sum = 0, k = 0;
+      for (const v of list) if (v !== null) { sum += v; k++; }
+      if (!k) return 0;
+      const m = sum / k;
+      return m > MAXSHIFT ? MAXSHIFT : m < -MAXSHIFT ? -MAXSHIFT : m;
+    }
+    return {
+      minRun: minRun,
+      // horizontal grid line y, columns x0..x1-1: rows y-1 (above) and y (below); + is down
+      h(x0, x1, y) {
+        if (y <= 0 || y >= h) return 0;
+        const v = [];
+        for (let x = x0; x < x1; x++) v.push(pair((y - 1) * w + x, y * w + x));
+        return avg(v);
+      },
+      // vertical grid line x, rows y0..y1-1: columns x-1 (left) and x (right); + is right
+      v(x, y0, y1) {
+        if (x <= 0 || x >= w) return 0;
+        const v = [];
+        for (let y = y0; y < y1; y++) v.push(pair(y * w + x - 1, y * w + x));
+        return avg(v);
+      }
+    };
   }
 
   function reverseFit(f) {
@@ -1346,6 +1484,23 @@
     const shapes = new Map(); // comp -> { label, contours, area }
     let loops = 0, nodes = 0;
     const vx = (v) => v % W, vy = (v) => (v / W) | 0;
+    // the two labels on either side of the grid edge u-v
+    const sidesOf = (u, v) => {
+      const x0 = Math.min(vx(u), vx(v)), y0 = Math.min(vy(u), vy(v));
+      return vy(u) === vy(v) ? [lab(x0, y0 - 1), lab(x0, y0)] : [lab(x0 - 1, y0), lab(x0, y0)];
+    };
+    const softCache = new Map();
+    // a looser, smoother fit for faint borders (factor 1 = unchanged)
+    const softer = (base, k) => {
+      if (!(k > 1.01)) return base;
+      const key = (base === settings.small ? "s" : "b") + k.toFixed(2);
+      let st = softCache.get(key);
+      if (!st) {
+        st = Object.assign({}, base, { err: base.err * k, lineErr: base.lineErr * k, smooth: base.smooth + (k > 2 ? 1 : 0) });
+        softCache.set(key, st);
+      }
+      return st;
+    };
 
     walkLoops(ed, w, h, (buf, n, rx, ry) => {
       loops++;
@@ -1384,7 +1539,9 @@
           if (ch.closed) { pxs = new Float64Array(m); pys = new Float64Array(m); for (let i = 0; i < m; i++) { pxs[i] = vx(seq[i]); pys[i] = vy(seq[i]); } }
           else { pxs = new Float64Array(m + 1); pys = new Float64Array(m + 1); for (let i = 0; i <= m; i++) { pxs[i] = vx(seq[i]); pys[i] = vy(seq[i]); } }
           // v2: a loop that is entirely a small shape (one closed chain) gets the smoother fit
-          f = fitPolyline(pxs, pys, ch.closed, (ch.closed && settings.small && Math.abs(area) / 2 < SMALL_AREA * settings.scale * settings.scale) ? settings.small : settings);
+          let fitWith = (ch.closed && settings.small && Math.abs(area) / 2 < SMALL_AREA * settings.scale * settings.scale) ? settings.small : settings;
+          if (settings.softness) fitWith = softer(fitWith, settings.softness(sidesOf(seq[0], seq[1])));
+          f = fitPolyline(pxs, pys, ch.closed, fitWith);
           if (ch.closed) f = { start: f.start, segs: f.segs, closed: true };
           fitted.set(key, f);
           nodes += f.segs.length;
@@ -1571,6 +1728,20 @@
       // v2: small shapes get a looser, smoother fit with fewer corners
       const smallDeg = settings.cornerDeg < RIGHT_ANGLE_DEG ? Math.min(RIGHT_ANGLE_DEG, settings.cornerDeg + 20) : Math.min(150, settings.cornerDeg + 30);
       settings.small = { err: settings.err * 2, lineErr: settings.lineErr * 2, smooth: settings.smooth + 1, cornerDeg: smallDeg, iconLogoMode: smoothMode, scale: S, shapes: settings.shapes };
+      // Adaptive simplification: a border between two colours that barely differ is poorly pinned
+      // down by the pixels (noise moves it about), so it gets up to 3x the fitting tolerance.
+      if (opts.adaptive !== false) {
+        settings.softness = (pair) => {
+          const a = pair[0], b = pair[1];
+          if (a === TRANSPARENT || b === TRANSPARENT || a === OUTSIDE || b === OUTSIDE || !gcolor[a] || !gcolor[b]) return 1;
+          const d = Math.sqrt(dist2(gcolor[a], gcolor[b]) / 0.6);
+          return d >= SOFT_HI ? 1 : d <= SOFT_LO ? SOFT_MAX : 1 + (SOFT_MAX - 1) * (SOFT_HI - d) / (SOFT_HI - SOFT_LO);
+        };
+      }
+      if (S === 1 && opts.subpixel !== false) {
+        const colorOf = (l) => l === TRANSPARENT || l === OUTSIDE || !gcolor[l] ? [0, 0, 0, 0] : [gcolor[l][0], gcolor[l][1], gcolor[l][2], 255];
+        settings.refine = settings.small.refine = makeRefiner(tl, data, w, h, colorOf, opts.subpixelMinRun || SUBPIXEL_MIN_RUN);
+      }
 
       let layers = [], nodes = 0;
       if (stacked) {
