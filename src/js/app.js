@@ -791,6 +791,12 @@
     }
     function undo() { if (st.hIdx > 0) { st.hIdx--; restore(st.history[st.hIdx]); } }
     function redo() { if (st.hIdx < st.history.length - 1) { st.hIdx++; restore(st.history[st.hIdx]); } }
+    // Text built in JavaScript (stats, colour names, slider labels) is rebuilt in the new language.
+    window.addEventListener("langchange", () => {
+      syncControls(); setCrop(st.crop);
+      $("[data-merge-toggle] span", root).textContent = T(st.merging ? "Cancel merge" : "Merge");
+      if (st.result) { render(); renderSwatches(); }
+    });
     $("[data-undo]", root).addEventListener("click", undo);
     $("[data-redo]", root).addEventListener("click", redo);
     document.addEventListener("keydown", (e) => {

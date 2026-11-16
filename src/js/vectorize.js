@@ -1726,12 +1726,12 @@
     const W = o.width || result.width, H = o.height || result.height, s = W / result.width;
     const L = [];
     const add = (code, val) => { L.push(String(code), String(val)); };
-    add(0, "SECTION"); add(2, "HEADER"); add(9, "$INSUNITS"); add(70, 0); add(9, "$EXTMIN"); add(10, 0); add(20, 0); add(9, "$EXTMAX"); add(10, f(W)); add(20, f(H)); add(0, "ENDSEC");
+    add(0, "SECTION"); add(2, "HEADER"); add(9, "$ACADVER"); add(1, "AC1009"); add(9, "$INSUNITS"); add(70, 0); add(9, "$EXTMIN"); add(10, 0); add(20, 0); add(9, "$EXTMAX"); add(10, f(W)); add(20, f(H)); add(0, "ENDSEC");
     add(0, "SECTION"); add(2, "ENTITIES");
     for (const it of visibleShapes(result, o)) {
       const layer = "COLOR_" + it.color.slice(1).toUpperCase();
       for (const c of it.shape.contours) {
-        add(0, "POLYLINE"); add(8, layer); add(66, 1); add(70, 1);
+        add(0, "POLYLINE"); add(8, layer); add(66, 1); add(10, 0); add(20, 0); add(30, 0); add(70, 1);
         for (const p of flatten(c, s, H)) { add(0, "VERTEX"); add(8, layer); add(10, f(p[0])); add(20, f(p[1])); }
         add(0, "SEQEND"); add(8, layer);
       }

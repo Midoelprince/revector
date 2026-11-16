@@ -4,7 +4,7 @@
 //   so every /assets/... address, the Web Worker and the language switch work
 //   with no internet connection.
 // - Checks for updates on launch and on request (electron-updater).
-const { app, BrowserWindow, Menu, ipcMain, protocol, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, protocol, session, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const pkg = require("../package.json");
@@ -159,6 +159,38 @@ ipcMain.handle("update:install", () => {
   return true;
 });
 
+// ---------- downloads ----------
+// Files saved from the page (SVG, PDF, EPS, DXF, PNG) go through the normal Save dialog. When one
+// finishes, the page is told its name and an id; "Show in folder" sends the id back, so the page
+// never hands a file path to the shell.
+const savedFiles = new Map();
+let savedSeq = 0;
+
+function watchDownloads() {
+  session.defaultSession.on("will-download", (_event, item, contents) => {
+    item.once("done", (_doneEvent, outcome) => {
+      if (!contents || contents.isDestroyed()) return;
+      const savePath = item.getSavePath();
+      if (outcome === "completed" && savePath) {
+        const id = ++savedSeq;
+        savedFiles.set(id, savePath);
+        if (savedFiles.size > 50) savedFiles.delete(savedFiles.keys().next().value);
+        contents.send("download:done", { id, status: "completed", name: path.basename(savePath), folder: path.basename(path.dirname(savePath)) });
+      } else if (outcome === "interrupted") {
+        contents.send("download:done", { id: 0, status: "failed", name: item.getFilename() });
+      }
+      // "cancelled": the person closed the Save dialog; nothing to say.
+    });
+  });
+}
+
+ipcMain.handle("download:show", (_event, id) => {
+  const file = savedFiles.get(Number(id));
+  if (!file || !isFile(file)) return false;
+  shell.showItemInFolder(file);
+  return true;
+});
+
 // ---------- window ----------
 function openOutside(address) {
   if (/^(https?:|mailto:)/i.test(address)) shell.openExternal(address);
@@ -221,6 +253,7 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform === "win32") app.setAppUserModelId("com.revector.desktop");
     Menu.setApplicationMenu(null); // clean window: no File/Edit/View bar
     protocol.handle(SCHEME, serve);
+    watchDownloads();
     createWindow();
 
     // Quiet check a few seconds after launch (installed app only).
