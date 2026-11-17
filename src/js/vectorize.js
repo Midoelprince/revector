@@ -223,6 +223,57 @@
   // the same accuracy; at ~225 px, 31% fewer points for ~4% more error.
   const RECON_SMOOTH = 3;
 
+  // How blurred and how noisy is the picture? Measured on the raw pixels.
+  //  width: median 10-90% width (px) of strong colour edges, taken across the edge between the
+  //         plateaus on either side. Hard pixel art reads ~1, anti-aliased artwork 1-1.6,
+  //         a blurred photo or scan 2.5 and up.
+  //  noise: median |pixel - mean of its 4 neighbours| (luminance) in flat areas.
+  // Returns { width, noise, blur: 0..1 } where blur drives the looser straight-line test.
+  function measureBlur(data, w, h) {
+    const widths = [];
+    const lum = (i) => 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+    const col = (i) => [data[i * 4], data[i * 4 + 1], data[i * 4 + 2]];
+    const probe = (get, len) => {
+      // plateau averages two samples beyond +-5
+      const A = get(-6), A2 = get(-5), B = get(6), B2 = get(5);
+      if (!A || !A2 || !B || !B2) return;
+      const pa = [(A[0] + A2[0]) / 2, (A[1] + A2[1]) / 2, (A[2] + A2[2]) / 2], pb = [(B[0] + B2[0]) / 2, (B[1] + B2[1]) / 2, (B[2] + B2[2]) / 2];
+      const d = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]], dd = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+      if (dd < 80 * 80) return;
+      const t = [];
+      for (let k = -5; k <= 5; k++) { const c = get(k); t.push(((c[0] - pa[0]) * d[0] + (c[1] - pa[1]) * d[1] + (c[2] - pa[2]) * d[2]) / dd); }
+      const cross = (lvl) => { for (let k = 0; k < t.length - 1; k++) if (t[k] < lvl && t[k + 1] >= lvl) return k + (lvl - t[k]) / (t[k + 1] - t[k]); return null; };
+      const a = cross(0.1), b = cross(0.9);
+      if (a === null || b === null || b < a) return;
+      // the ramp must be monotone-ish: no second edge inside the window
+      let back = 0;
+      for (let k = 0; k < t.length - 1; k++) if (t[k + 1] < t[k] - 0.15) back++;
+      if (back) return;
+      widths.push(b - a);
+    };
+    const step = Math.max(2, Math.round(Math.sqrt(w * h) / 220));
+    for (let y = 6; y < h - 7; y += step) for (let x = 6; x < w - 7; x += step) {
+      const i = y * w + x;
+      // a horizontal and a vertical probe where the local gradient peaks
+      const gx = Math.abs(lum(i + 1) - lum(i - 1)), gy = Math.abs(lum(i + w) - lum(i - w));
+      if (gx > 40 && gx >= Math.abs(lum(i + 2) - lum(i)) && gx >= Math.abs(lum(i) - lum(i - 2)))
+        probe((k) => col(i + k), 1);
+      if (gy > 40 && gy >= Math.abs(lum(i + 2 * w) - lum(i)) && gy >= Math.abs(lum(i) - lum(i - 2 * w)))
+        probe((k) => col(i + k * w), 1);
+    }
+    const res = [];
+    for (let y = 2; y < h - 2; y += step) for (let x = 2; x < w - 2; x += step) {
+      const i = y * w + x, c = lum(i), m4 = (lum(i - 1) + lum(i + 1) + lum(i - w) + lum(i + w)) / 4;
+      // flat: no strong edge within 2 px
+      if (Math.abs(lum(i - 2) - lum(i + 2)) > 24 || Math.abs(lum(i - 2 * w) - lum(i + 2 * w)) > 24) continue;
+      res.push(Math.abs(c - m4));
+    }
+    const median = (v) => { if (!v.length) return 0; const s2 = v.slice().sort((p, q) => p - q); return s2[s2.length >> 1]; };
+    const width = widths.length >= 12 ? median(widths) : 0, noise = median(res);
+    const blur = Math.max(0, Math.min(1, (width - BLUR_W0) / (BLUR_W1 - BLUR_W0)));
+    return { width, noise, blur };
+  }
+
   function bilateralFilter(src, w, h, radius, sigmaS, sigmaR) {
     const out = new Uint8ClampedArray(src);
     const taps = [];
@@ -588,6 +639,73 @@
       if (!changed) break;
     }
     if (src !== labels) labels.set(src);
+  }
+
+  // ---------------- 3b. blend colours of blurred pictures ----------------
+  // On a blurred photo or scan, every edge between two paints passes through in-between colours,
+  // and a thin line (a 2 px window frame) never reaches its own paint at all. Those in-between
+  // colours become palette entries of their own and come out as slivers along edges and as frames
+  // in the wrong colour. A palette colour that lies between two others and only appears in thin
+  // strips is such a blend: each of its pixels goes to one of the two paints. With only one of
+  // them nearby (a thin pale line on green), it takes the other, which restores the line; with
+  // both nearby (the edge of a window), it takes the one its own colour is closer to.
+  function unblend(labels, data, w, h, centers, blur) {
+    const K = centers.length, n = w * h;
+    if (K < 3 || blur <= 0) return 0;
+    const area = new Int32Array(K), edge = new Int32Array(K);
+    const nb = Array.from({ length: K }, () => new Int32Array(K));
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x, l = labels[i];
+      if (l === TRANSPARENT) continue;
+      area[l]++;
+      let border = false;
+      for (const j of [i - 1, i + 1, i - w, i + w]) { const q = labels[j]; if (q !== l && q !== TRANSPARENT) { border = true; nb[l][q]++; } }
+      if (border) edge[l]++;
+    }
+    let moved = 0;
+    for (let c = 0; c < K; c++) {
+      if (!area[c] || edge[c] < UNBLEND_THIN * area[c]) continue; // a real region, not a strip
+      // its two most frequent neighbours, and is it a blend of them?
+      let a = -1, b = -1;
+      for (let q = 0; q < K; q++) { if (q === c) continue; if (a < 0 || nb[c][q] > nb[c][a]) { b = a; a = q; } else if (b < 0 || nb[c][q] > nb[c][b]) b = q; }
+      if (a < 0 || b < 0 || !nb[c][b]) continue;
+      const A = centers[a], B = centers[b], C = centers[c];
+      const d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], L2 = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+      if (L2 < 60 * 60) continue;
+      const t = ((C[0] - A[0]) * d[0] + (C[1] - A[1]) * d[1] + (C[2] - A[2]) * d[2]) / L2;
+      if (t < 0.1 || t > 0.9) continue;
+      const o0 = A[0] + d[0] * t - C[0], o1 = A[1] + d[1] * t - C[1], o2 = A[2] + d[2] * t - C[2];
+      if (o0 * o0 + o1 * o1 + o2 * o2 > L2 * 0.08) continue; // not on the A-B line
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (labels[i] !== c) continue;
+        let seeA = false, seeB = false;
+        const others = [];
+        for (let dy = -2; dy <= 2; dy++) {
+          const yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (let dx = -2; dx <= 2; dx++) {
+            const xx = x + dx; if (xx < 0 || xx >= w) continue;
+            const q = labels[yy * w + xx];
+            if (q === a) seeA = true; else if (q === b) seeB = true;
+            else if (q !== c && q !== TRANSPARENT && others.indexOf(q) < 0) others.push(q);
+          }
+        }
+        let to;
+        const p = i * 4, px0 = [data[p], data[p + 1], data[p + 2]];
+        if (others.length) {
+          // a third colour is nearby (red text next to the blend): take the closest colour present
+          let bd = Infinity;
+          for (const q of others.concat(seeA ? [a] : [], seeB ? [b] : [])) { const dq = dist2(px0, centers[q]); if (dq < bd) { bd = dq; to = q; } }
+        } else if (seeA && !seeB) to = b;
+        else if (seeB && !seeA) to = a;
+        else {
+          const tt = ((px0[0] - A[0]) * d[0] + (px0[1] - A[1]) * d[1] + (px0[2] - A[2]) * d[2]) / L2;
+          to = tt < 0.5 ? a : b;
+        }
+        labels[i] = to; moved++;
+      }
+    }
+    return moved;
   }
 
   // ---------------- 4. edge vote (v2) ----------------
@@ -1362,7 +1480,8 @@
     const size = Math.max(maxX - minX, maxY - minY) / sc;
     if (Math.min(maxX - minX, maxY - minY) / sc < 2.5) return null;
     // tolerance in source pixels (grows slowly with size), plus the half pixel a stair step can stray
-    const tol = Math.min(1.1, 0.45 + 0.008 * size) * sc, stair = 0.5;
+    // a blurred picture's outline wanders more around the true shape (see measureBlur)
+    const tol = Math.min(1.1, 0.45 + 0.008 * size) * (1 + (settings.blur || 0) * (settings.__primBlur != null ? settings.__primBlur : PRIM_BLUR)) * sc, stair = 0.5;
     const accept = (dist) => {
       let mx = 0, sum = 0;
       for (let i = 0; i < n; i++) { const d = dist(px[i], py[i]); if (d > mx) mx = d; sum += d; }
@@ -1419,7 +1538,8 @@
         if (d < bestFit.d) bestFit = { d, inset, r: rr };
       }
       hw -= bestFit.inset; hh -= bestFit.inset; r = bestFit.r;
-      if (r < 1.0 * sc) r = 0;
+      // blur rounds every corner a little: on a blurred picture a small radius is the blur, not the design
+      if (r < (1.0 + (settings.__roundBlur != null ? settings.__roundBlur : ROUND_BLUR) * (settings.blur || 0)) * sc) r = 0;
       const e = accept((x, y) => { const dx = x - cx, dy = y - cy; return roundRectDist(dx * cs + dy * sn, -dx * sn + dy * cs, hw, hh, r); });
       if (e < Infinity) cands.push({ e, path: () => primitivePath(roundRectSegs(hw, hh, r), cx, cy, th, ccw) });
     }
@@ -1543,10 +1663,29 @@
       return postSimplifySegs([X[0], Y[0]], segs, closed, settings);
     }
     const count = closed ? cidx.length : cidx.length - 1;
+    // Line-first: every side between two corners is tested as a straight line fitted through all of
+    // its points (not the corner-to-corner chord, which tilts when noise moves one corner). Where two
+    // neighbouring sides are both straight, the corner moves to where their lines cross. Chain ends
+    // (open chains) stay put: they are shared with other chains.
+    const sides = [];
     for (let c = 0; c < count; c++) {
       const a = cidx[c], b = closed ? (c + 1 < cidx.length ? cidx[c + 1] : cidx[0] + n) : cidx[c + 1];
-      let xs = [cx[a % n]], ys = [cy[a % n]];
-      runMids(px, py, a, b, n, xs, ys, settings.refine);
+      const mx = [], my = [];
+      runMids(px, py, a, b, n, mx, my, settings.refine);
+      sides.push({ a, b, mx, my, line: settings.lineFirst === false ? null : sideLineFit(mx, my, cx[a % n], cy[a % n], cx[b % n], cy[b % n], settings) });
+    }
+    if (settings.lineFirst !== false) {
+      for (let c = closed ? 0 : 1; c < count; c++) {
+        const A = sides[(c - 1 + count) % count].line, B = sides[c].line;
+        if (!A || !B) continue;
+        const v = sides[c].a % n, hit = crossLines(A, B);
+        if (hit && Math.hypot(hit[0] - cx[v], hit[1] - cy[v]) <= LINE_CORNER_MOVE * (settings.scale || 1)) { cx[v] = hit[0]; cy[v] = hit[1]; }
+      }
+    }
+    for (let c = 0; c < count; c++) {
+      const { a, b, mx, my, line } = sides[c];
+      if (line) { segs.push({ l: [cx[b % n], cy[b % n]] }); continue; }
+      let xs = [cx[a % n]].concat(mx), ys = [cy[a % n]].concat(my);
       xs.push(cx[b % n]); ys.push(cy[b % n]);
       const runPrim = settings.shapes !== false && fitRunPrimitive(xs, ys, settings);
       if (runPrim) { for (const g of runPrim) segs.push(g); continue; }
@@ -1563,6 +1702,43 @@
       }
     }
     return postSimplifySegs([cx[cidx[0] % n], cy[cidx[0] % n]], segs, closed, settings);
+  }
+
+  // Straight-side test for line-first fitting. Fits a total-least-squares line through the side's
+  // run midpoints and the two corners; the side counts as straight when the points stay close to
+  // it (rms and max) and it is long enough to matter. A line within half a pixel of horizontal or
+  // vertical over its whole length is snapped exactly to that axis.
+  function sideLineFit(xs, ys, x0, y0, x1, y1, settings) {
+    const sc = settings.scale || 1, n = xs.length;
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (n < 3 || len < LINE_MIN_LEN * sc) return null;
+    let mx = 0, my = 0;
+    for (let i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }
+    mx /= n; my /= n;
+    let sxx = 0, sxy = 0, syy = 0;
+    for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
+    let th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+    let ux = Math.cos(th), uy = Math.sin(th);
+    // the fitted direction must agree with the side's own direction (not a short, fat cloud)
+    if (Math.abs(ux * (x1 - x0) + uy * (y1 - y0)) < 0.9 * len) return null;
+    const blur = settings.blur || 0;
+    const rmsTol = (LINE_RMS + LINE_RMS_BLUR * blur) * sc, maxTol = (LINE_MAX + LINE_MAX_BLUR * blur) * sc;
+    let ss = 0, mxd = 0;
+    for (let i = 0; i < n; i++) { const d = Math.abs((xs[i] - mx) * uy - (ys[i] - my) * ux); ss += d * d; if (d > mxd) mxd = d; }
+    if (Math.sqrt(ss / n) > rmsTol || mxd > maxTol) return null;
+    // the side's end points must also sit near the line (a bent side has one straight half)
+    for (const [x, y] of [[x0, y0], [x1, y1]]) if (Math.abs((x - mx) * uy - (y - my) * ux) > maxTol * 1.5) return null;
+    // axis snap: drift over the whole side under LINE_SNAP px
+    if (Math.abs(uy) * len < LINE_SNAP * sc) { ux = Math.sign(ux) || 1; uy = 0; }
+    else if (Math.abs(ux) * len < LINE_SNAP * sc) { ux = 0; uy = Math.sign(uy) || 1; }
+    return { mx, my, ux, uy };
+  }
+  // Where two fitted lines cross, or null when they are close to parallel.
+  function crossLines(A, B) {
+    const cr = A.ux * B.uy - A.uy * B.ux;
+    if (Math.abs(cr) < 0.25) return null; // under ~15 degrees apart: not a real corner
+    const t = ((B.mx - A.mx) * B.uy - (B.my - A.my) * B.ux) / cr;
+    return [A.mx + A.ux * t, A.my + A.uy * t];
   }
 
   // The straight pixel run that ends (dir -1) or starts (dir +1) at vertex i, as [from, to] indices.
@@ -1809,16 +1985,32 @@
   const RIGHT_ANGLE_DEG = 80;
   // straight / arc acceptance for a side between corners, in source pixels
   const RUN_LINE_TOL = 0.6, RUN_ARC_TOL = 0.55;
+  // Line-first fitting (in source pixels): a side is straight when its points stay within LINE_RMS
+  // (rms) and LINE_MAX (max) of the fitted line, more on blurred pictures; sides shorter than
+  // LINE_MIN_LEN are left to the curve fitter. A corner may move up to LINE_CORNER_MOVE to where
+  // its two straight sides cross; LINE_SNAP is the end-to-end drift under which a line is made
+  // exactly horizontal or vertical.
+  const LINE_RMS = 0.3, LINE_MAX = 0.6, LINE_RMS_BLUR = 0.25, LINE_MAX_BLUR = 0.6;
+  const LINE_MIN_LEN = 6, LINE_CORNER_MOVE = 1.5, LINE_SNAP = 0.5;
+  // Edge width (px, 10-90%) at which a picture starts to count as blurred, and is fully blurred.
+  const BLUR_W0 = 1.8, BLUR_W1 = 3.3;
+  // A palette colour counts as a thin strip when at least this share of its pixels lie on a border.
+  const UNBLEND_THIN = 0.55;
+  // Extra tolerance for exact shapes on a fully blurred picture (x1 + PRIM_BLUR).
+  const PRIM_BLUR = 1.0;
+  // Corner radius (px) per unit of blur that still counts as a sharp corner.
+  const ROUND_BLUR = 4;
 
   function createSession(img) {
     const w = img.width, h = img.height, n = w * h;
     const data = img.data;
     const quantCache = new Map();
+    const blurInfo = measureBlur(data, w, h);
     let comp = null, queue = null, hiComp = null, hiQueue = null, reconCache = null;
 
     function quant(opts, say, recon) {
       const binFlag = opts.iconLogoMode !== false ? 1 : 0;
-      const key = (opts.centers ? "c:" + opts.centers.map((c) => c.map((v) => v.toFixed(2)).join(",")).join(";") : "k:" + (opts.colors | 0)) + ":b" + binFlag + ":r" + (recon ? 1 : 0);
+      const key = (opts.unblend === false ? "nb:" : "") + (opts.centers ? "c:" + opts.centers.map((c) => c.map((v) => v.toFixed(2)).join(",")).join(";") : "k:" + (opts.colors | 0)) + ":b" + binFlag + ":r" + (recon ? 1 : 0);
       if (quantCache.has(key)) return quantCache.get(key);
       say(0.04, "Binarizing & smoothing edges…");
       let srcData = recon ? bilateralFilter(data, w, h, 2, 1.5, 28) : data;
@@ -1847,6 +2039,8 @@
       say(0.2, "Cleaning blended edges…");
       dehalo(labels, filtered, w, h, centers, 2);
       say(0.25, "Cleaning edges…"); edgeVote(labels, filtered, w, h, centers, 2);
+      const blurNow = opts.__blur != null ? opts.__blur : blurInfo.blur;
+      if (opts.unblend !== false && unblend(labels, filtered, w, h, centers, blurNow)) edgeVote(labels, filtered, w, h, centers, 1);
       const counts = new Array(centers.length).fill(0);
       for (let i = 0; i < n; i++) if (labels[i] !== TRANSPARENT) counts[labels[i]]++;
       const q = { centers, labels, counts, key };
@@ -1925,7 +2119,12 @@
       const settings = { err: baseErr, lineErr, smooth: baseSmooth + (recon ? RECON_SMOOTH : 0), cornerDeg: CORNER_DEG[Math.max(0, Math.min(4, opts.corners | 0))], iconLogoMode: smoothMode, scale: S, shapes: opts.shapes !== false };
       // v2: small shapes get a looser, smoother fit with fewer corners
       const smallDeg = settings.cornerDeg < RIGHT_ANGLE_DEG ? Math.min(RIGHT_ANGLE_DEG, settings.cornerDeg + 20) : Math.min(150, settings.cornerDeg + 30);
-      settings.small = { err: settings.err * 2, lineErr: settings.lineErr * 2, smooth: settings.smooth + 1, cornerDeg: smallDeg, iconLogoMode: smoothMode, scale: S, shapes: settings.shapes };
+      settings.blur = opts.__blur != null ? opts.__blur : blurInfo.blur;
+      // line-first fitting is for blurred pictures; on clean artwork it measured slightly worse
+      settings.lineFirst = opts.lineFirst !== false && settings.blur > 0;
+      settings.__primBlur = opts.__primBlur;
+      settings.__roundBlur = opts.__roundBlur;
+      settings.small = { __roundBlur: settings.__roundBlur, __primBlur: settings.__primBlur, blur: settings.blur, lineFirst: settings.lineFirst, err: settings.err * 2, lineErr: settings.lineErr * 2, smooth: settings.smooth + 1, cornerDeg: smallDeg, iconLogoMode: smoothMode, scale: S, shapes: settings.shapes };
       // Adaptive simplification: a border between two colours that barely differ is poorly pinned
       // down by the pixels (noise moves it about), so it gets up to 3x the fitting tolerance.
       if (opts.adaptive !== false) {
@@ -1972,7 +2171,7 @@
         backgroundGroup: bg, backgroundCluster: bgCluster,
         palette: order.map((g) => ({ group: g, color: hex(gcolor[g]), count: counts[g] })),
         layers,
-        stats: { colors: order.filter((g) => !transparent.has(g)).length, shapes: shapesTotal, nodes }
+        stats: { colors: order.filter((g) => !transparent.has(g)).length, shapes: shapesTotal, nodes, blur: +settings.blur.toFixed(2), edgeWidth: +blurInfo.width.toFixed(2), noise: +blurInfo.noise.toFixed(2) }
       };
     }
     return { trace, width: w, height: h };
