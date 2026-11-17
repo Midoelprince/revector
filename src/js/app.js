@@ -211,7 +211,6 @@
 
     function run(resetPalette) {
       const id = ++st.job;
-      if (resetPalette) st.needFit = true;
       const options = Object.assign({}, st.opts);
       if (!resetPalette && st.clusters) {
         options.centers = st.clusters.map((c) => c.rgb);
@@ -308,18 +307,6 @@
     }
 
     // ---------- swatches, popover, merging ----------
-    function swatchBackground(cell) {
-      if (cell.transparent) return "";
-      if (cell.members.length > 1) {
-        const cols = cell.members.filter((k) => st.clusters[k].count > 0).map((k) => st.clusters[k].color);
-        if (cols.length > 1) {
-          const step = 100 / cols.length;
-          const stops = cols.map((c, i) => `${c} ${(i * step).toFixed(1)}% ${((i + 1) * step).toFixed(1)}%`).join(",");
-          return `linear-gradient(135deg, ${cell.color} 0 48%, transparent 48%), linear-gradient(135deg, ${stops})`;
-        }
-      }
-      return cell.color;
-    }
     function renderSwatches() {
       swatches.innerHTML = "";
       const total = st.cells.reduce((a, c) => a + c.members.reduce((b, k) => b + st.clusters[k].count, 0), 0) || 1;
@@ -435,7 +422,7 @@
         if (g.hasAttribute("stroke")) g.setAttribute("stroke", value);
       });
       const sw = swatches.querySelector(`[data-cell="${ci}"]`);
-      if (sw) sw.style.background = swatchBackground(st.cells[ci]);
+      if (sw) sw.style.background = transp ? "" : st.cells[ci].color;
     }
     // ---- custom color picker: saturation/brightness square + hue slider + hex ----
     const svEl = $("[data-pop-sv]", pop), knob = $("[data-pop-knob]", pop), hueEl = $("[data-pop-hue]", pop);
@@ -543,9 +530,10 @@
       v.tx = cx - (cx - v.tx) * (ns / v.s); v.ty = cy - (cy - v.ty) * (ns / v.s); v.s = ns; applyView();
     }
 
-    function setSource(canvas, name) {
+    function setSource(canvas, name, keepFull) {
       st.name = (name || "image").replace(/\.[a-z0-9]+$/i, "");
       st.orig = canvas;
+      if (!keepFull) { st.fullOrig = canvas; st.fullName = name || "image"; }
       const m = Math.max(canvas.width, canvas.height);
       // Never upscale: small pictures are traced at their own size (no 3x blow-up).
       const sc = m > MAX ? MAX / m : 1;
@@ -553,11 +541,11 @@
       else {
         const t = document.createElement("canvas");
         t.width = Math.max(1, Math.round(canvas.width * sc)); t.height = Math.max(1, Math.round(canvas.height * sc));
-        const c = t.getContext("2d"); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high"; c.drawImage(canvas, 0, 0, t.width, t.height);
+        const c = t.getContext("2d", { willReadFrequently: true }); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high"; c.drawImage(canvas, 0, 0, t.width, t.height);
         st.trace = t;
       }
-      st.rawTrace = st.trace; const binC = document.createElement("canvas"); binC.width = st.rawTrace.width; binC.height = st.rawTrace.height; binC.getContext("2d", { willReadFrequently: true }); if (R.binarizeCanvas) R.binarizeCanvas(st.rawTrace, binC, st.opts); else binC.getContext("2d").drawImage(st.rawTrace, 0, 0); st.trace = binC;
-      st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null;
+      st.rawTrace = st.trace;
+      st.imageId++; st.clusters = null; st.cells = []; st.result = null; localSession = null; st.needFit = true;
       st.history = []; st.hIdx = -1; st.pick = -1; updateHistoryButtons();
       fileEl.textContent = `${name || "image"}  ·  ${canvas.width} × ${canvas.height}`;
     }
@@ -678,7 +666,7 @@
         if (ex - sx < 4 || ey - sy < 4) return;
         const c = document.createElement("canvas"); c.width = ex - sx; c.height = ey - sy;
         c.getContext("2d").drawImage(st.orig, sx, sy, c.width, c.height, 0, 0, c.width, c.height);
-        setSource(c, st.name.replace(/-cropped$/, "") + "-cropped.png"); run(true);
+        setSource(c, st.name.replace(/-cropped$/, "") + "-cropped.png", true); run(true);
         return;
       }
       pan = null;
@@ -691,7 +679,10 @@
 
     function setCrop(on) { st.crop = on; $("[data-crop]", root).textContent = T(on ? "Drag a box…" : "Crop"); canvasEl.style.cursor = on ? "crosshair" : ""; }
     $("[data-crop]", root).addEventListener("click", () => setCrop(!st.crop));
-    $("[data-reset]", root).addEventListener("click", () => { st.hidden = new Set(); if (st.result) { run(true); } });
+    $("[data-reset]", root).addEventListener("click", () => {
+      if (st.fullOrig && st.orig !== st.fullOrig) { setSource(st.fullOrig, st.fullName, true); run(true); return; }
+      if (st.hidden.size) { st.hidden = new Set(); render(); commit(); }
+    });
 
     // ---- options ----
     const detailNames = ["Lowest", "Low", "Medium", "High", "Highest"], cornerNames = ["Softest", "Soft", "Balanced", "Crisp", "Crispest"];
@@ -700,8 +691,8 @@
     $$("[data-opt]", root).forEach((el) => el.addEventListener(el.type === "range" ? "input" : "change", () => {
       const k = el.dataset.opt;
       if (["colors", "iconLogoMode", "detail", "corners", "layering", "symmetry", "shapes"].includes(k)) st.commitOnDone = true;
-      if (k === "colors") { st.opts.colors = +el.value; if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; retrace(true); }
-      else if (k === "iconLogoMode") { st.opts.iconLogoMode = el.checked; if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; retrace(true); }
+      if (k === "colors") { st.opts.colors = +el.value; retrace(true); }
+      else if (k === "iconLogoMode") { st.opts.iconLogoMode = el.checked; retrace(true); }
       else if (k === "detail") { st.opts.detail = +el.value; $("[data-detail-val]", root).textContent = (window.t ? window.t(detailNames[el.value]) : detailNames[el.value]); retrace(false); }
       else if (k === "corners") { st.opts.corners = +el.value; $("[data-corner-val]", root).textContent = (window.t ? window.t(cornerNames[el.value]) : cornerNames[el.value]); syncCornerMode(); retrace(false); }
       else if (k === "layering") { st.opts.layering = el.value; retrace(false); }
@@ -733,7 +724,13 @@
       b.addEventListener("click", () => { if (colorSel.value === o.value) return; colorSel.value = o.value; colorSel.dispatchEvent(new Event("change")); syncPresets(); });
       presets.appendChild(b);
     });
-    function syncPresets() { $$("button", presets).forEach((b) => b.setAttribute("aria-pressed", b.dataset.value === colorSel.value ? "true" : "false")); }
+    function syncPresets() {
+      $$("button", presets).forEach((b) => {
+        b.textContent = b.dataset.value === "0" ? T("Auto") : b.dataset.value;
+        b.setAttribute("aria-label", b.dataset.value === "0" ? T("Auto") : `${b.dataset.value} ${T("colors")}`);
+        b.setAttribute("aria-pressed", b.dataset.value === colorSel.value ? "true" : "false");
+      });
+    }
     $("[data-pal-split]", root).addEventListener("click", (e) => { e.stopPropagation(); if (st.pick >= 0) unmergeCell(st.pick); });
     $("[data-pal-edit]", root).addEventListener("click", (e) => { e.stopPropagation(); if (st.pick >= 0) openPop(st.pick, swatches.querySelector(`[data-cell="${st.pick}"]`) || e.currentTarget); });
     $("[data-pal-reset]", root).addEventListener("click", () => { if (!st.result) return; closePop(); setMerging(false); st.pick = -1; st.commitOnDone = true; run(true); });
@@ -776,18 +773,19 @@
       $("[data-opt=iconLogoMode]", root).checked = !!o.iconLogoMode;
       $("[data-opt=symmetry]", root).checked = st.symmetry;
       $("[data-opt=gapFill]", root).checked = st.gapFill;
+      $("[data-opt=removeBg]", root).checked = bgCell() ? bgCell().transparent : false;
     }
     const structureOf = (cells) => JSON.stringify(cells.map((c) => [c.members, c.transparent]));
     function restore(state) {
+      clearTimeout(t); st.commitOnDone = false;
       const prev = { opts: st.opts, symmetry: st.symmetry, clusters: st.clusters, structure: structureOf(st.cells) };
       st.opts = Object.assign({}, state.opts); st.symmetry = state.symmetry; st.gapFill = state.gapFill;
       st.clusters = state.clusters; st.cells = JSON.parse(state.cells);
       st.pick = -1; st.selected.clear(); pop.hidden = true; popCell = -1; if (st.merging) setMerging(false);
       syncControls();
-      const rebin = prev.opts.colors !== st.opts.colors || prev.opts.iconLogoMode !== st.opts.iconLogoMode || prev.symmetry !== st.symmetry;
-      if (rebin) { if (R.binarizeCanvas && st.rawTrace) R.binarizeCanvas(st.rawTrace, st.trace, st.opts); st.imageId++; localSession = null; }
-      const retraceNeeded = rebin || prev.clusters !== st.clusters || prev.structure !== structureOf(st.cells)
-        || ["detail", "corners", "layering", "shapes"].some((k) => prev.opts[k] !== st.opts[k]);
+      if (prev.symmetry !== st.symmetry) { st.imageId++; localSession = null; }
+      const retraceNeeded = prev.symmetry !== st.symmetry || prev.clusters !== st.clusters || prev.structure !== structureOf(st.cells)
+        || ["colors", "iconLogoMode", "detail", "corners", "layering", "shapes"].some((k) => prev.opts[k] !== st.opts[k]);
       if (retraceNeeded) { st.pendingHidden = new Set(state.hidden); run(false); }
       else { st.hidden = new Set(state.hidden); render(); renderSwatches(); }
       updateHistoryButtons();
@@ -861,6 +859,11 @@
     });
     window.addEventListener("popstate", () => { if (root.classList.contains("open") && location.hash !== "#app") close(true); });
     window.addEventListener("resize", () => { if (root.classList.contains("open")) fit(); });
+    window.addEventListener("langchange", () => {
+      syncControls();
+      setCrop(st.crop);
+      if (st.result) { render(); renderSwatches(); }
+    });
     if (location.hash === "#app") history.replaceState(null, "", location.pathname);
 
     return { openCanvas, openFile };

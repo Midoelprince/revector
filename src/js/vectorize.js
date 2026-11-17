@@ -676,16 +676,23 @@
       if (t < 0.1 || t > 0.9) continue;
       const o0 = A[0] + d[0] * t - C[0], o1 = A[1] + d[1] * t - C[1], o2 = A[2] + d[2] * t - C[2];
       if (o0 * o0 + o1 * o1 + o2 * o2 > L2 * 0.08) continue; // not on the A-B line
+      const src = labels.slice();
+      const segOff2 = (px, P, Q) => {
+        const u0 = Q[0] - P[0], u1 = Q[1] - P[1], u2 = Q[2] - P[2], uL2 = u0 * u0 + u1 * u1 + u2 * u2;
+        if (uL2 < 900) return Infinity;
+        const s = Math.max(0, Math.min(1, ((px[0] - P[0]) * u0 + (px[1] - P[1]) * u1 + (px[2] - P[2]) * u2) / uL2));
+        return s < 0.12 ? Infinity : dist2(px, [P[0] + u0 * s, P[1] + u1 * s, P[2] + u2 * s]);
+      };
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const i = y * w + x;
-        if (labels[i] !== c) continue;
+        if (src[i] !== c) continue;
         let seeA = false, seeB = false;
         const others = [];
         for (let dy = -2; dy <= 2; dy++) {
           const yy = y + dy; if (yy < 0 || yy >= h) continue;
           for (let dx = -2; dx <= 2; dx++) {
             const xx = x + dx; if (xx < 0 || xx >= w) continue;
-            const q = labels[yy * w + xx];
+            const q = src[yy * w + xx];
             if (q === a) seeA = true; else if (q === b) seeB = true;
             else if (q !== c && q !== TRANSPARENT && others.indexOf(q) < 0) others.push(q);
           }
@@ -696,9 +703,16 @@
           // a third colour is nearby (red text next to the blend): take the closest colour present
           let bd = Infinity;
           for (const q of others.concat(seeA ? [a] : [], seeB ? [b] : [])) { const dq = dist2(px0, centers[q]); if (dq < bd) { bd = dq; to = q; } }
-        } else if (seeA && !seeB) to = b;
-        else if (seeB && !seeA) to = a;
-        else {
+        } else if (seeA !== seeB) {
+          const bg = seeA ? a : b, opp = seeA ? b : a, BG = centers[bg];
+          let bestQ = opp, bestD = segOff2(px0, BG, centers[opp]);
+          for (let q = 0; q < K; q++) {
+            if (q === a || q === b || q === c || !area[q] || edge[q] >= UNBLEND_THIN * area[q]) continue;
+            const dq = segOff2(px0, BG, centers[q]);
+            if (dq < bestD) { bestD = dq; bestQ = q; }
+          }
+          to = bestQ === opp ? opp : (dist2(px0, centers[bestQ]) <= dist2(px0, BG) ? bestQ : bg);
+        } else {
           const tt = ((px0[0] - A[0]) * d[0] + (px0[1] - A[1]) * d[1] + (px0[2] - A[2]) * d[2]) / L2;
           to = tt < 0.5 ? a : b;
         }
@@ -1709,9 +1723,12 @@
   // it (rms and max) and it is long enough to matter. A line within half a pixel of horizontal or
   // vertical over its whole length is snapped exactly to that axis.
   function sideLineFit(xs, ys, x0, y0, x1, y1, settings) {
-    const sc = settings.scale || 1, n = xs.length;
+    const sc = settings.scale || 1;
     const len = Math.hypot(x1 - x0, y1 - y0);
-    if (n < 3 || len < LINE_MIN_LEN * sc) return null;
+    if (len < LINE_MIN_LEN * sc) return null;
+    if (xs.length < 3) { xs = [x0].concat(xs, [x1]); ys = [y0].concat(ys, [y1]); }
+    const n = xs.length;
+    if (n < 3) return null;
     let mx = 0, my = 0;
     for (let i = 0; i < n; i++) { mx += xs[i]; my += ys[i]; }
     mx /= n; my /= n;

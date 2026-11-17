@@ -306,6 +306,7 @@
     "Updates aren't available here": "التحديثات غير متاحة هنا",
     "Updates work in the installed app. This is a development run.": "التحديثات تعمل في التطبيق المثبَّت فقط. هذا تشغيل تجريبي.",
     "The portable version can't update itself. Download the newest one, or use the installer.": "النسخة المحمولة لا تحدّث نفسها. نزّل أحدث نسخة أو استخدم المثبِّت.",
+    "The updater isn't part of this build.": "أداة التحديث غير مضمَّنة في هذه النسخة.",
     "Couldn't update": "تعذّر التحديث",
     "Check your internet connection and try again.": "تحقق من اتصالك بالإنترنت ثم حاول مجددًا.",
     "Try Again": "حاول مجددًا",
