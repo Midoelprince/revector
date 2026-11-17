@@ -6,7 +6,6 @@
   var desktop = window.revectorDesktop;
   if (!desktop) return;
 
-  var DISMISS_KEY = "revector.update.dismissed";
   // i18n.js (loaded first) provides window.t for the Arabic interface.
   function tr(text) { return typeof window.t === "function" ? window.t(text) : text; }
   var css = [
@@ -16,6 +15,10 @@
     ".desk-check:hover{color:var(--accent);border-color:var(--accent)}",
     ".desk-check:focus-visible,.desk-btn:focus-visible,.desk-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
     ".desk-check[disabled]{color:var(--text-muted);border-color:var(--border-subtle);cursor:default}",
+    ".desk-check.is-available,.desk-check.is-ready{color:var(--accent);border-color:var(--accent);background:var(--accent-tint,rgba(11,120,148,.08));font-weight:600}",
+    ".desk-check.is-available::before{content:'';display:inline-block;width:8px;height:8px;margin-inline-end:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-tint,rgba(11,120,148,.18))}",
+    ".desk-check.is-ready{background:var(--accent);color:#fff}",
+    ".desk-check.is-ready:hover{color:#fff;filter:brightness(1.08)}",
     ".desk-update{position:fixed;right:24px;bottom:24px;z-index:1000;width:360px;max-width:calc(100vw - 48px);box-sizing:border-box;padding:16px 16px 16px 18px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-card-sm);box-shadow:var(--shadow-float);font-family:var(--font-ui);font-size:var(--type-body-sm);line-height:1.4}",
     ".desk-update[hidden]{display:none}",
     ".desk-update-head{display:flex;align-items:flex-start;gap:12px}",
@@ -199,16 +202,6 @@
   var hideTimer = 0;
   var onAction = null;
 
-  function dismissed() {
-    try { return sessionStorage.getItem(DISMISS_KEY) || ""; } catch (_) { return ""; }
-  }
-  function setDismissed(value) {
-    try {
-      if (value) sessionStorage.setItem(DISMISS_KEY, value);
-      else sessionStorage.removeItem(DISMISS_KEY);
-    } catch (_) {}
-  }
-
   function show(view) {
     clearTimeout(hideTimer);
     title.textContent = view.title;
@@ -230,41 +223,32 @@
     banner.hidden = true;
   }
 
-  function label(version) {
-    return version ? " (v" + version + ")" : "";
+  // The top-bar button carries the whole update flow:
+  //   Check for Updates -> Checking\u2026 -> Update available (click: download) -> Downloading 43%
+  //   -> Restart to update (click: silent install + relaunch). The banner is only used for the
+  //   answers to a manual check (up to date, unsupported, failed).
+  var restarting = false;
+  function setButton(text, cls, disabled, tip) {
+    checkButton.textContent = text;
+    checkButton.className = "desk-check" + (cls ? " " + cls : "");
+    checkButton.disabled = !!disabled;
+    checkButton.title = tip || "";
   }
 
   // fresh = the state just changed; false when a page is re-showing an old state.
   function render(state, fresh) {
     current = state || { status: "idle" };
     var status = current.status;
-    var busy = status === "checking" || status === "downloading";
-    checkButton.disabled = busy;
-    checkButton.textContent = tr(status === "checking" ? "Checking\u2026" : "Check for Updates");
+    var v = current.version ? " \u00b7 v" + current.version : "";
 
-    if (status === "available") {
-      if (!current.manual && dismissed() === "available:" + current.version) return hide();
-      show({
-        title: tr("Update available") + label(current.version),
-        note: currentVersion ? tr("You have") + " v" + currentVersion : "",
-        button: tr("Download & Update"),
-        onClick: function () { desktop.downloadUpdate(); }
-      });
-    } else if (status === "downloading") {
-      show({
-        title: tr("Downloading update") + label(current.version),
-        note: (current.percent || 0) + "% \u2014 " + tr("You can keep working."),
-        percent: current.percent || 0
-      });
-    } else if (status === "downloaded") {
-      if (!current.manual && !fresh && dismissed() === "downloaded:" + current.version) return hide();
-      show({
-        title: tr("Update ready") + label(current.version),
-        note: tr("Restart Revector to finish. Save your work first."),
-        percent: 100,
-        button: tr("Restart to Apply Update"),
-        onClick: function () { desktop.installUpdate(); }
-      });
+    if (status === "checking") setButton(tr("Checking\u2026"), "", true);
+    else if (status === "available") setButton(tr("Update available") + v, "is-available", false, currentVersion ? tr("You have") + " v" + currentVersion + ". " + tr("Click to download.") : tr("Click to download."));
+    else if (status === "downloading") setButton(tr("Downloading\u2026") + " " + (current.percent || 0) + "%", "", true);
+    else if (status === "downloaded") setButton(restarting ? tr("Restarting\u2026") : tr("Restart to update") + v, "is-ready", restarting, tr("Installs the update and starts Revector again. Save your work first."));
+    else setButton(tr("Check for Updates"), "", false);
+
+    if (status === "available" || status === "downloading" || status === "downloaded") {
+      hide();
     } else if (status === "checking") {
       if (current.manual && fresh) show({ title: tr("Checking for updates\u2026") });
     } else if (status === "none") {
@@ -291,15 +275,17 @@
   action.addEventListener("click", function () {
     if (onAction) onAction();
   });
-  close.addEventListener("click", function () {
-    if (current.status === "available" || current.status === "downloaded") {
-      setDismissed(current.status + ":" + current.version);
-    }
-    hide();
-  });
+  close.addEventListener("click", hide);
   checkButton.addEventListener("click", function () {
-    setDismissed("");
-    desktop.checkForUpdates();
+    if (current.status === "available") desktop.downloadUpdate();
+    else if (current.status === "downloaded") {
+      restarting = true;
+      render(current, true);
+      desktop.installUpdate().then(function (ok) {
+        // false: the updater refused (nothing downloaded any more); let the person try again
+        if (ok === false) { restarting = false; desktop.checkForUpdates(); }
+      }).catch(function () { restarting = false; render(current, true); });
+    } else if (current.status !== "checking" && current.status !== "downloading") desktop.checkForUpdates();
   });
 
   desktop.onUpdateEvent(function (state) { render(state, true); });
