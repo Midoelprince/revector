@@ -148,7 +148,7 @@
     "Unmerge colors": "فصل الألوان",
     "Pick 2 or more colors": "اختر لونين أو أكثر",
     "Make left and right halves match": "مطابقة النصفين الأيمن والأيسر",
-    "Gap filler (hides hairline seams)": "سد الفجوات (يخفي الشقوق الدقيقة)",
+    "Gap filler (hides hairline seams; not for cutting machines)": "سد الفجوات (يخفي الشقوق الدقيقة؛ لا يناسب مكائن القص)",
     "Color": "اللون",
     "Transparent (cut out)": "شفاف (مقتطع)",
     "OK": "حسنًا",

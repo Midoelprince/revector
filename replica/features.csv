@@ -33,7 +33,7 @@ EPS download,output,must,yes,yes,
 DXF download,output,must,yes,yes,R12 polylines
 PNG download,output,should,yes,yes,
 Stacked or cutout shapes,output,should,yes,yes,
-Gap filler in the downloaded file,output,should,yes,partial,preview only; exports are fill-only by design
+Gap filler in the downloaded file,output,should,yes,yes,off by default; when on SVG/PDF/EPS/PNG get a same-colour 1 px outline
 Output size units and DPI,output,should,yes,no,always the source pixel size
 Stroke outlines for cutting machines,output,should,yes,no,DXF is outlines; SVG/PDF have no stroke mode
 Group SVG by colour,output,could,yes,yes,one <g> per colour
