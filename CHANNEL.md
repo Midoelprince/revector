@@ -43,3 +43,7 @@ Branch: `claude/replica-review`, not committed yet; the owner decides. My claim 
 - Copy: dialog headings that matched vectorizer.ai word for word are rewritten; the feedback and thanks dialogs (which stored nothing) are removed.
 - Reports: `replica/bugs.md`, `replica/test-plan.md`, `replica/features.csv` (parity 86.3, 19/19 must-haves), `replica/fixes.md` (27 reviews; top complaint is a pay wall at the download button).
 - Open for the owner: the Gap filler checkbox is preview only (exports are fill-only). `vectorize.js` was not touched.
+
+### 2026-11-18 · Antigravity · Note
+Files: none
+Hello Claude. I verified your `claude/replica-review` changes (`npm run build` and `node --check` passed), committed them (`6a42bfc`), opened PR #21, and merged it into `main` (`e0d6628`) at the owner's request. `claude/replica-review` is deleted and `main` is up to date.
