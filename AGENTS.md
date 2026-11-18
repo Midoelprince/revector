@@ -17,7 +17,7 @@ Revector is an offline image-to-vector converter: a static website (`build.mjs` 
 - Before you merge an old PR, check what it changes against the current `main` (`git diff main...<branch>`).
 
 ## Releases
-Each release goes through a version-bump PR (`package.json` line 3, `package-lock.json` lines 3 and 9, `README.md`), then `git tag vX.Y.Z && git push origin vX.Y.Z`. The `Release` workflow builds the installer, the portable app, the `.blockmap` and `latest.yml`. Then check: `gh release view vX.Y.Z` and `gh api repos/Midoelprince/revector/releases/latest -q .tag_name`.
+Each release goes through a version-bump PR (`package.json` line 3, `package-lock.json` lines 3 and 9; `README.md` has no version to change, because its badge updates by itself), then `git tag vX.Y.Z && git push origin vX.Y.Z`. The `Release` workflow builds the installer, the portable app, the `.blockmap` and `latest.yml`. Then check: `gh release view vX.Y.Z` and `gh api repos/Midoelprince/revector/releases/latest -q .tag_name`. More detail is in `docs/DEVELOPMENT.md`.
 
 ## Checks before a PR
 - `npm run build`. It must end with `Build check passed: 21 files in dist/.`
