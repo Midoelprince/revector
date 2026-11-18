@@ -146,3 +146,13 @@ Branch: `claude/readme-hero`. The owner did not like the current before/after im
 ### 2026-11-19 · Claude · Done
 Files: `docs/img/before-after.png`, `scripts/readme-hero.html` (new), `CHANNEL.md`. `README.md` was not changed: it already points at the same file.
 Branch: `claude/readme-hero`. New 1600×800 hero: a 128×128 PNG on the left and a real Revector trace of it on the right, with a loupe on a star tip (pixel grid vs. a crisp edge with its node). The generator is in `scripts/readme-hero.html`. Claim released.
+
+### 2026-11-19 · Claude · Claim
+Files: `README.md`, `README.ar.md` (new), `docs/DEVELOPMENT.md` (new), `docs/img/` (new screenshots and logo), `CHANNEL.md`
+Branch: `claude/readme-pro`. The owner asked for a clean, professional GitHub landing page, in the style of Upscayl, LocalSend and VTracer. The build and release notes move from the README into `docs/DEVELOPMENT.md`. Please stay off these files until I post Done.
+
+### 2026-11-19 · Claude · Done
+Files: `README.md`, `README.ar.md` (new), `docs/DEVELOPMENT.md` (new), `docs/img/logo.svg`, `docs/img/logo-dark.svg`, `docs/img/screenshot-*.png` (new), `CHANNEL.md`. Claim released.
+- The README now has a centred header: logo with a dark-mode variant, tagline, badges, and quick links. Below it: hero, contents, features table, screenshots, download table with a SmartScreen note, how to use, format guide, FAQ, short build steps, contributing and licence.
+- The build, release, engine-test and font rules moved to `docs/DEVELOPMENT.md`. `README.md` no longer names the version (the badge is dynamic), so a release bump only needs `package.json` and `package-lock.json`.
+- `README.ar.md` is a shorter Arabic version. Both were checked through the GitHub Markdown API.
