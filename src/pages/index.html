@@ -208,14 +208,14 @@
       </div>
 
       <div class="ed-panel" data-panel="background" hidden>
-        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>Back to tools</span></button>
         <h2 class="ed-title" data-i18n>Background</h2>
         <label class="check"><input type="checkbox" data-opt="removeBg"> <span data-i18n>Remove background</span></label>
         <p class="hint" data-i18n>Makes the color along the picture's edge transparent. To keep or drop single shapes, use Regions.</p>
       </div>
 
       <div class="ed-panel" data-panel="palette" hidden>
-        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>Back to tools</span></button>
         <h2 class="ed-title" data-i18n>Palette</h2>
         <div class="pal-legend" aria-hidden="true"><span class="pl-orig"><i></i><i></i><i></i></span><span data-i18n>Original</span><span class="pl-arrow">→</span><span class="pl-out"><i></i></span><span data-i18n>Output</span></div>
         <div class="swatches" data-swatches></div>
@@ -233,14 +233,14 @@
       </div>
 
       <div class="ed-panel" data-panel="regions" hidden>
-        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>Back to tools</span></button>
         <h2 class="ed-title" data-i18n>Regions</h2>
         <label class="check"><input type="checkbox" data-opt="edit"> <span data-i18n>Click shapes to remove them</span></label>
         <div class="row" style="margin-top:14px"><button type="button" class="btn btn-outline" data-crop data-i18n>Crop</button><button type="button" class="btn btn-outline" data-reset data-i18n>Reset edits</button></div>
       </div>
 
       <div class="ed-panel" data-panel="geometry" hidden>
-        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>Back to tools</span></button>
         <h2 class="ed-title" data-i18n>Geometry</h2>
         <label class="check"><input type="checkbox" data-opt="shapes" checked> <span data-i18n>Fit precise shapes</span></label>
         <p class="hint" data-i18n>Circles, ellipses, rectangles and rounded rectangles come out as exact shapes; straight sides and round arcs stay true.</p>
@@ -255,7 +255,7 @@
       </div>
 
       <div class="ed-panel" data-panel="corners" hidden>
-        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>All tools</span></button>
+        <button type="button" class="ed-back" data-tool-back><span aria-hidden="true">←</span> <span data-i18n>Back to tools</span></button>
         <h2 class="ed-title" data-i18n>Corners</h2>
         <div class="ed-radios" role="radiogroup" aria-label="Corners">
           <label class="check"><input type="radio" name="corner-mode" value="auto" data-corner-mode checked> <span data-i18n>Automatic</span></label>
@@ -292,9 +292,7 @@
     <button type="button" class="pop-transparent" data-pop-transparent aria-pressed="false"><span class="checker" aria-hidden="true"></span>Transparent (cut out)</button>
     <button type="button" class="btn btn-outline pop-unmerge" data-pop-unmerge hidden>Unmerge colors</button>
   </div>
-  <div class="app-dialog" data-dialog="network" hidden><div class="box"><h3>Network Error</h3><p>The tracing helper couldn't be loaded, so tracing continues on this page instead. It may be a little slower.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
-  <div class="app-dialog" data-dialog="fatal" hidden><div class="box"><h3>Fatal Error :-(</h3><p>Something went wrong while tracing this picture. Try a different picture or reload the page.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
+  <div class="app-dialog" data-dialog="network" hidden><div class="box"><h3>Tracing on this page</h3><p>The tracing helper couldn't be loaded, so tracing continues on this page instead. It may be a little slower.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
+  <div class="app-dialog" data-dialog="fatal" hidden><div class="box"><h3>This picture didn't trace</h3><p>Something went wrong while tracing this picture. Try a different picture or reload the page.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
   <div class="app-dialog" data-dialog="error" hidden><div class="box"><h3>Error</h3><p data-error-text>Sorry, that picture couldn't be traced.</p><button type="button" class="btn btn-dark" data-dialog-close>OK</button></div></div>
-  <div class="app-dialog" data-dialog="feedback" hidden><div class="box"><h3>Please help us improve!</h3><p>How did this result turn out?</p><div class="feedback-row"><button type="button" class="btn btn-outline" data-feedback="good">Great</button><button type="button" class="btn btn-outline" data-feedback="ok">Okay</button><button type="button" class="btn btn-outline" data-feedback="bad">Not good</button></div><button type="button" class="show-more-btn" data-dialog-close>Not now</button></div></div>
-  <div class="app-dialog" data-dialog="thanks" hidden><div class="box"><h3>Thank you - please share the love!</h3><p>Glad it helped. Tell a friend who works with pictures.</p><button type="button" class="btn btn-primary" data-dialog-close>Close</button></div></div>
 </div>

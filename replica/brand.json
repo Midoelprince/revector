@@ -1,0 +1,5 @@
+{
+  "avoid": ["Vectorizer.AI", "Vectorizer AI", "VectorizerAI"],
+  "domains": ["vectorizer.ai"],
+  "colors": []
+}
