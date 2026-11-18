@@ -1,0 +1,154 @@
+<!doctype html>
+<!-- README hero generator. Copy to dist/assets/ after `npm run build`, serve with `node scripts/serve.mjs`, then:
+  msedge --headless=new --force-device-scale-factor=1 --window-size=1600,800 --virtual-time-budget=20000 --screenshot=docs/img/before-after.png "http://localhost:4173/assets/readme-hero.html?n=128&fx=0.61&fy=0.75&z=4.6&mr=130"
+  The right side is a real Revector trace of the left side. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Plex;src:url(fonts/plex-sans-arabic-latin-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Plex;src:url(fonts/plex-sans-arabic-latin-600.woff2) format("woff2");font-weight:600}
+@font-face{font-family:Plex;src:url(fonts/plex-sans-arabic-latin-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Mono;src:url(fonts/jetbrains-mono.woff2) format("woff2")}
+html,body{margin:0;background:#0b1020;overflow:hidden}
+canvas{display:block}
+</style></head>
+<body><canvas id="c" width="1600" height="800"></canvas>
+<script src="js/vectorize.js"></script>
+<script>
+(async () => {
+  await Promise.all(["700 40px Plex", "600 20px Plex", "400 20px Plex", "16px Mono"].map((f) => document.fonts.load(f)));
+  const P = new URLSearchParams(location.search);
+  const N = +(P.get("n") || 48);           // source size in pixels
+  const FX = +(P.get("fx") || 0.76), FY = +(P.get("fy") || 0.80); // magnifier focus, 0..1 of source
+
+  // ---- 1. the low-res source picture (drawn small, like a tiny logo) ----
+  const src = document.createElement("canvas"); src.width = src.height = N;
+  const s = src.getContext("2d");
+  s.fillStyle = "#fff4e6"; s.fillRect(0, 0, N, N);
+  s.fillStyle = "#0f8f8f"; s.beginPath(); s.arc(N * 0.47, N * 0.53, N * 0.40, 0, Math.PI * 2); s.fill();
+  s.fillStyle = "#ffffff";
+  if (P.get("art") === "r") { s.font = `700 ${Math.round(N * 0.62)}px Plex`; s.textAlign = "center"; s.textBaseline = "middle"; s.fillText("R", N * 0.47, N * 0.56); }
+  else {
+    s.beginPath();
+    for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = (k % 2 ? 0.115 : 0.27) * N; s.lineTo(N * 0.47 + rr * Math.cos(a), N * 0.56 + rr * Math.sin(a)); }
+    s.closePath(); s.fill();
+  }
+  if (P.get("dot") !== "0") { s.fillStyle = "#ff6a3d"; s.beginPath(); s.arc(N * 0.86, N * 0.14, N * 0.09, 0, Math.PI * 2); s.fill(); }
+  const img = s.getImageData(0, 0, N, N);
+
+  // ---- 2. trace it with Revector itself ----
+  const R = window.Revector;
+  const res = await R.trace(img, {});
+  const visible = [];
+  res.layers.forEach((L) => { if (!L.transparent) L.shapes.forEach((sh) => visible.push({ sh, color: L.color, path: new Path2D(R.shapeToPath(sh, 1)) })); });
+
+  // ---- 3. compose ----
+  const c = document.getElementById("c"), g = c.getContext("2d");
+  const W = 1600, H = 800;
+  let bg = g.createRadialGradient(800, 260, 50, 800, 400, 1000);
+  bg.addColorStop(0, "#17213d"); bg.addColorStop(1, "#080c18");
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+
+  // headline
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillStyle = "#ffffff"; g.font = "700 58px Plex";
+  g.fillText("Pixels in.  Vectors out.", W / 2, 84);
+  g.fillStyle = "#93a3c4"; g.font = "400 22px Plex";
+  g.fillText(`The same ${N}×${N} picture, zoomed in. Right side: traced by Revector, offline, in your browser or on Windows.`, W / 2, 124);
+
+  const ART = 400, SC = ART / N;
+  const panels = [{ x: 110, kind: "px" }, { x: 1070 - 0, kind: "vec" }];
+  const PY = 190, PW = 420 + 0, PH = 420;
+
+  function rr(x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+  function drawPixels(ctx, sx, sy, scale) { ctx.imageSmoothingEnabled = false; ctx.drawImage(src, sx, sy, N * scale, N * scale); }
+  function drawVector(ctx, sx, sy, scale, lw) {
+    ctx.save(); ctx.translate(sx, sy); ctx.scale(scale, scale);
+    for (const v of visible) { ctx.fillStyle = v.color; ctx.strokeStyle = v.color; ctx.lineWidth = lw / scale; ctx.lineJoin = "round"; ctx.fill(v.path, "evenodd"); ctx.stroke(v.path); }
+    ctx.restore();
+  }
+  function nodes(ctx, sx, sy, scale) {
+    const pts = [];
+    for (const v of visible) for (const ct of v.sh.contours) {
+      let p = ct.start; pts.push({ p, h: [] });
+      for (const sg of ct.segs) {
+        if (sg.l) { p = sg.l; pts.push({ p, h: [] }); }
+        else { pts[pts.length - 1].h.push([sg.c[0], sg.c[1]]); p = [sg.c[4], sg.c[5]]; pts.push({ p, h: [[sg.c[2], sg.c[3]]] }); }
+      }
+    }
+    return pts.map((o) => ({ x: sx + o.p[0] * scale, y: sy + o.p[1] * scale, h: o.h.map((q) => [sx + q[0] * scale, sy + q[1] * scale]) }));
+  }
+
+  const ax = [150, 1050], ay = 222;
+  // cards
+  ax.forEach((x, i) => {
+    g.save(); g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = 40; g.shadowOffsetY = 18;
+    g.fillStyle = "#111933"; rr(x - 24, ay - 24, ART + 48, ART + 48, 22); g.fill(); g.restore();
+    g.strokeStyle = i ? "rgba(45,212,191,.55)" : "rgba(251,113,133,.45)"; g.lineWidth = 2; rr(x - 24, ay - 24, ART + 48, ART + 48, 22); g.stroke();
+  });
+  drawPixels(g, ax[0], ay, SC);
+  drawVector(g, ax[1], ay, SC, 1);
+
+  // labels
+  function pill(x, y, text, fg, bgc) {
+    g.font = "16px Mono"; const w = g.measureText(text).width + 28;
+    g.fillStyle = bgc; rr(x - w / 2, y - 17, w, 34, 17); g.fill();
+    g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, x, y + 1);
+  }
+  pill(ax[0] + ART / 2, ay - 50, `BEFORE · ${N}×${N} PNG`, "#ffd3da", "rgba(251,113,133,.18)");
+  pill(ax[1] + ART / 2, ay - 50, "AFTER · EDITABLE VECTOR PATHS", "#c8fff5", "rgba(45,212,191,.16)");
+
+  // magnifiers
+  const MR = +(P.get("mr") || 135), ZOOM = SC * +(P.get("z") || 4);
+  const fx = FX * N, fy = FY * N;
+  const mags = ax.map((x) => ({ cx: x + fx * SC, cy: ay + fy * SC }));
+  mags.forEach((m, i) => {
+    const artX = ax[i], tx = artX + fx * SC, ty = ay + fy * SC, half = (MR / ZOOM) * SC;
+    // zoom box on the art + leader line
+    // lens
+    g.save(); g.beginPath(); g.arc(m.cx, m.cy, MR, 0, Math.PI * 2); g.clip();
+    const ox = m.cx - fx * ZOOM, oy = m.cy - fy * ZOOM;
+    if (!i) {
+      drawPixels(g, ox, oy, ZOOM);
+      g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 1; g.beginPath();
+      for (let k = 0; k <= N; k++) { g.moveTo(ox + k * ZOOM, oy); g.lineTo(ox + k * ZOOM, oy + N * ZOOM); g.moveTo(ox, oy + k * ZOOM); g.lineTo(ox + N * ZOOM, oy + k * ZOOM); }
+      g.stroke();
+    } else {
+      g.fillStyle = "#fff4e6"; g.fillRect(m.cx - MR, m.cy - MR, MR * 2, MR * 2);
+      drawVector(g, ox, oy, ZOOM, 1.2);
+      for (const v of visible) { g.save(); g.translate(ox, oy); g.scale(ZOOM, ZOOM); g.strokeStyle = "#ff3d7f"; g.lineWidth = 2.2 / ZOOM; g.stroke(v.path); g.restore(); }
+      const ns = nodes(g, ox, oy, ZOOM).filter((n) => Math.hypot(n.x - m.cx, n.y - m.cy) < MR + 20); window.__lensNodes = ns.length;
+      g.strokeStyle = "rgba(30,41,59,.75)"; g.lineWidth = 1.4;
+      ns.forEach((n) => n.h.forEach((h) => { g.beginPath(); g.moveTo(n.x, n.y); g.lineTo(h[0], h[1]); g.stroke(); g.fillStyle = "#1e293b"; g.beginPath(); g.arc(h[0], h[1], 4, 0, 7); g.fill(); }));
+      ns.forEach((n) => { g.fillStyle = "#ffffff"; g.strokeStyle = "#ff3d7f"; g.lineWidth = 2.5; g.fillRect(n.x - 6, n.y - 6, 12, 12); g.strokeRect(n.x - 6, n.y - 6, 12, 12); });
+    }
+    g.restore();
+    g.save(); g.shadowColor = "rgba(0,0,0,.5)"; g.shadowBlur = 24;
+    g.strokeStyle = "#ffffff"; g.lineWidth = 6; g.beginPath(); g.arc(m.cx, m.cy, MR, 0, Math.PI * 2); g.stroke(); g.restore();
+    const cap = i ? "Clean edges, editable nodes" : "Jagged pixel steps";
+    g.font = "600 17px Plex"; const cw = g.measureText(cap).width + 30, cy2 = m.cy + MR + 26;
+    g.fillStyle = "#0b1020"; rr(m.cx - cw / 2, cy2 - 17, cw, 34, 17); g.fill();
+    g.strokeStyle = i ? "rgba(45,212,191,.6)" : "rgba(251,113,133,.6)"; g.lineWidth = 1.5; rr(m.cx - cw / 2, cy2 - 17, cw, 34, 17); g.stroke();
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = i ? "#5eead4" : "#fda4af"; g.fillText(cap, m.cx, cy2 + 1);
+  });
+
+  // centre arrow
+  g.save(); g.shadowColor = "rgba(20,184,166,.6)"; g.shadowBlur = 30;
+  g.fillStyle = "#14b8a6"; g.beginPath(); g.arc(800, 300, 46, 0, Math.PI * 2); g.fill(); g.restore();
+  g.strokeStyle = "#ffffff"; g.lineWidth = 6; g.lineCap = "round"; g.lineJoin = "round";
+  g.beginPath(); g.moveTo(780, 300); g.lineTo(820, 300); g.moveTo(805, 284); g.lineTo(821, 300); g.lineTo(805, 316); g.stroke();
+  g.font = "700 22px Plex"; g.fillStyle = "#ffffff"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("Revector", 800, 376); g.font = "400 17px Plex"; g.fillStyle = "#93a3c4"; g.fillText("one click · offline", 800, 404);
+
+  // footer chips
+  const chips = ["Free", "No account", "Works offline", "SVG · EPS · PDF · DXF · PNG", "English + العربية"];
+  g.font = "600 18px Plex";
+  const widths = chips.map((t) => g.measureText(t).width + 36), gap = 14;
+  let x = (W - (widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1))) / 2;
+  chips.forEach((t, i) => {
+    g.fillStyle = "rgba(148,163,196,.12)"; rr(x, 734, widths[i], 40, 20); g.fill();
+    g.strokeStyle = "rgba(148,163,196,.28)"; g.lineWidth = 1.5; rr(x, 734, widths[i], 40, 20); g.stroke();
+    g.fillStyle = "#dbe4ff"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t, x + widths[i] / 2, 755);
+    x += widths[i] + gap;
+  });
+  document.title = "ready " + visible.length + " lens " + window.__lensNodes;
+})();
+</script></body></html>
