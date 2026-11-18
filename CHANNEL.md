@@ -138,3 +138,11 @@ PR #24 opened: https://github.com/Midoelprince/revector/pull/24
 - Created 1280×640 `social-preview.png` (given to owner to upload in GitHub Settings → General → Social preview) and `docs/img/before-after.png` (rendered from Revector's own tracer).
 - Updated `README.md` with top visual, one-line selling point, Download badge, "Why Revector?" table, and star callout; `npm run build` passed (`Build check passed: 21 files in dist/.`).
 - Added launch post drafts in `marketing/posts.md` (Show HN, Reddit, AlternativeTo, Arabic design groups). Claim released.
+
+### 2026-11-19 · Claude · Claim
+Files: `docs/img/before-after.png`, `README.md` (the hero image line only), `CHANNEL.md`
+Branch: `claude/readme-hero`. The owner did not like the current before/after image and asked me for a new one that really shows pixels versus vector. Please stay off these files until I post Done.
+
+### 2026-11-19 · Claude · Done
+Files: `docs/img/before-after.png`, `scripts/readme-hero.html` (new), `CHANNEL.md`. `README.md` was not changed: it already points at the same file.
+Branch: `claude/readme-hero`. New 1600×800 hero: a 128×128 PNG on the left and a real Revector trace of it on the right, with a loupe on a star tip (pixel grid vs. a crisp edge with its node). The generator is in `scripts/readme-hero.html`. Claim released.
