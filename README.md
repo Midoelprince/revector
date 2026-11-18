@@ -1,6 +1,28 @@
+![Revector before and after](docs/img/before-after.png)
+
 # ⚛️ Revector: High-Precision Offline Image-to-Vector Converter
 
-Turn blurry, pixelated images (PNG, JPG, WebP, GIF, BMP) into crisp, resolution-independent vector graphics (SVG, EPS, PDF, DXF) entirely on your local device. Your images never leave your machine.
+Free image-to-vector converter. No account, no paywall at download, and your pictures never leave your computer.
+
+<p>
+  <a href="https://github.com/Midoelprince/revector/releases/latest">
+    <img src="https://img.shields.io/badge/Download_Revector_(Windows)-Latest_Release-0b7894?style=for-the-badge&logo=windows&logoColor=white" alt="Download Revector for Windows" height="40">
+  </a>
+</p>
+
+Turn blurry, pixelated images (PNG, JPG, WebP, GIF, BMP) into crisp, resolution-independent vector graphics (SVG, EPS, PDF, DXF) entirely on your local device.
+
+***
+
+## Why Revector?
+
+| | Revector | Typical Online Converters |
+| --- | --- | --- |
+| **Download** | **Free** — no paywall at the download button, no watermark | Preview free, paywall or watermark at download |
+| **Privacy** | **100% offline** — runs on your own computer | Requires uploading files to a remote server |
+| **Account & Limits** | **No account**, no conversion caps or throttling | Sign-up required or per-image limits |
+| **Languages** | **English & Arabic** (full RTL interface) | English-only |
+| **Formats** | **SVG, EPS, PDF, DXF, PNG** | Often gated behind paid plans |
 
 ***
 
@@ -75,3 +97,7 @@ If the result is poor, set the number of colours by hand, raise the detail, or c
 
 ## 📜 License
 This project is released under the MIT License. See the `LICENSE` file for details.
+
+---
+
+If Revector saved you time, a ⭐ on GitHub helps others find it.
