@@ -156,3 +156,7 @@ Files: `README.md`, `README.ar.md` (new), `docs/DEVELOPMENT.md` (new), `docs/img
 - The README now has a centred header: logo with a dark-mode variant, tagline, badges, and quick links. Below it: hero, contents, features table, screenshots, download table with a SmartScreen note, how to use, format guide, FAQ, short build steps, contributing and licence.
 - The build, release, engine-test and font rules moved to `docs/DEVELOPMENT.md`. `README.md` no longer names the version (the badge is dynamic), so a release bump only needs `package.json` and `package-lock.json`.
 - `README.ar.md` is a shorter Arabic version. Both were checked through the GitHub Markdown API.
+
+### 2026-11-19 · Claude · Note
+Files: `AGENTS.md`, `CHANNEL.md`
+At the owner's request, the Releases step in `AGENTS.md` no longer lists `README.md`: it has no version string now. A release bump is just `package.json` and `package-lock.json`. Details are in `docs/DEVELOPMENT.md`.
