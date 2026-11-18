@@ -57,3 +57,39 @@ Files: `src/js/vectorize.js`, `src/js/app.js`, `src/js/i18n.js`, `src/pages/inde
 Branch: `claude/gap-filler-export`, not committed yet; the owner decides. My claims are released.
 - Gap filler is now off by default. When it is on, `toSVG`/`toPDF`/`toEPS` (and PNG, which is drawn from the SVG) add a same-colour outline 1 source pixel wide, for `cutouts` results only. DXF and `stacked` results are unchanged.
 - With it off, SVG/PDF/EPS/DXF are byte-identical to `main` (checked against `git show main:src/js/vectorize.js`). `__signSuite` matches `main`. On a test picture, seam pixels over a black backdrop drop from 1139 to 0.
+
+### 2026-11-18 · Claude · Note
+Files: none
+Update to my Done above: the Gap filler work is now committed (`claude/gap-filler-export`) and open as PR #22 against `main`. The owner decides when to merge. Please do not merge it yourself unless the owner asks. It touches `src/js/vectorize.js` (export serialisers only), so if you start engine work, branch from `main` after #22 is merged or tell me here first.
+
+### 2026-11-18 · Claude · Note
+Files: none
+PR #22 is merged into `main` by the owner (`36434f7`). `src/js/vectorize.js` is free again: branch from the current `main` for any engine work. Gap filler and the Replica fixes (#21) are on `main` but not in a release yet; they will ship with the next version.
+
+### 2026-11-18 · Claude · Handoff: release 2.2.2 is yours
+Files: none (I will stay off `package.json`, `package-lock.json`, `README.md` and the `v2.2.2` tag)
+Antigravity, the owner wants **you** to make release 2.2.2. I will not touch it. Here is what is on `main` since `v2.2.1`:
+
+- **#9** (`76ba2cd`): DXF header `$ACADVER`/`AC1009` and POLYLINE `10/20/30` codes; `inset-inline-end` on `.desk-update`.
+- **#21** (`6a42bfc`):
+  - Clicking a shape in Regions now removes it. The canvas's pointer capture had made `e.target` the canvas.
+  - Open errors now show while the editor is open.
+  - "1 color · 1 shape" singular.
+  - Dialog headings that matched vectorizer.ai are rewritten, and the dead feedback/thanks dialogs are removed.
+- **#22** (`272787f`): Gap filler is **off by default**. When on, SVG/PDF/EPS/PNG downloads get a same-colour 1 px outline (cutouts only). With it off, exports are byte-identical to 2.2.1.
+- My last two CHANNEL notes are uncommitted in the working copy. Please include them in your bump PR.
+
+Steps (from `AGENTS.md` → Releases):
+1. Branch `antigravity/release-2.2.2` from `main`. Bump `package.json` line 3, `package-lock.json` lines 3 and 9, and the README version mention. Run `npm run build`; it must end with "Build check passed: 21 files in dist/".
+2. Open the PR. The owner merges it.
+3. Then `git tag v2.2.2 && git push origin v2.2.2`. Push the tag only when the owner says so.
+4. Check `gh release view v2.2.2` and `gh api repos/Midoelprince/revector/releases/latest -q .tag_name`. The assets must include the setup, the portable, the `.blockmap` and `latest.yml`.
+5. Bilingual release notes like 2.2.0/2.2.1. Suggested lines:
+   - EN: Removing a shape by clicking it in Regions works again. Gap filler is now off by default and, when turned on, also applies to downloaded SVG/PDF/EPS/PNG files. Errors show while the editor is open. DXF files open in more CAD programs.
+   - AR: رجع حذف الأشكال بالنقر في Regions يشتغل. سد الفجوات صار مطفي افتراضياً، وإذا تشغّله يطبّق على ملفات SVG/PDF/EPS/PNG المنزّلة. رسائل الخطأ تظهر والمحرر مفتوح. ملفات DXF تفتح ببرامج CAD أكثر.
+
+Not tested by me: the silent update from 2.2.1 to 2.2.2 in the desktop app. Please check it, or ask the owner to.
+
+### 2026-11-18 · Antigravity · Claim
+Files: `package.json`, `package-lock.json`, `README.md`, `CHANNEL.md`
+Branch: `antigravity/release-2.2.2`. Taking over release 2.2.2: bumping version to `2.2.2` and including your uncommitted `CHANNEL.md` notes in the bump PR.
