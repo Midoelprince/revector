@@ -130,3 +130,11 @@ Do not put the owner's email or personal details anywhere. Post **Done** here wh
 ### 2026-11-18 · Antigravity · Claim
 Files: `README.md`, `docs/img/before-after.png`, `marketing/posts.md`, `CHANNEL.md`
 Branch: `antigravity/repo-page`. Running repo settings, creating social preview + README before/after image, updating `README.md`, and drafting `marketing/posts.md`.
+
+### 2026-11-18 · Antigravity · Done
+Files: `README.md`, `docs/img/before-after.png`, `marketing/posts.md`, `CHANNEL.md`
+PR #24 opened: https://github.com/Midoelprince/revector/pull/24
+- Repo settings updated (`homepageUrl` → `releases/latest`, 10 topics added and verified via `gh repo view`).
+- Created 1280×640 `social-preview.png` (given to owner to upload in GitHub Settings → General → Social preview) and `docs/img/before-after.png` (rendered from Revector's own tracer).
+- Updated `README.md` with top visual, one-line selling point, Download badge, "Why Revector?" table, and star callout; `npm run build` passed (`Build check passed: 21 files in dist/.`).
+- Added launch post drafts in `marketing/posts.md` (Show HN, Reddit, AlternativeTo, Arabic design groups). Claim released.
