@@ -164,7 +164,7 @@
       mode: "split", view: { s: 1, tx: 0, ty: 0 }, seam: 0.5,
       opts: { colors: 0, detail: 2, corners: 2, layering: "cutouts", iconLogoMode: false, shapes: true },
       pick: -1, history: [], hIdx: -1, pendingHidden: null, commitOnDone: false,
-      gapFill: true, strokes: false, edit: false, crop: false, job: 0, needFit: false,
+      gapFill: false, strokes: false, edit: false, crop: false, job: 0, needFit: false,
       symmetry: false, merging: false, selected: new Set()
     };
     let worker = null, workerOk = true, localSession = null, sentImage = -1, workerFail = null;
@@ -832,7 +832,7 @@
     }
     $$("[data-dl]", root).forEach((b) => b.addEventListener("click", () => {
       if (!st.result) return;
-      const o = { width: st.orig.width, height: st.orig.height, hidden: st.hidden, colors: layerColors(), transparent: layerTransparent(), strokes: false, gapFill: false };
+      const o = { width: st.orig.width, height: st.orig.height, hidden: st.hidden, colors: layerColors(), transparent: layerTransparent(), strokes: false, gapFill: st.gapFill };
       const kind = b.dataset.dl === "main" ? ((sel && sel.value) || "eps") : b.dataset.dl;
       if (kind === "svg") save(new Blob([R.toSVG(st.result, o)], { type: "image/svg+xml" }), "svg");
       else if (kind === "pdf") save(new Blob([R.toPDF(st.result, o)], { type: "application/pdf" }), "pdf");

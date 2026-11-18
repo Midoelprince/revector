@@ -37,6 +37,6 @@ Cases run:
 
 ## To check (not fixed, the owner decides)
 
-- **Gap filler is preview only.** The "Gap filler (hides hairline seams)" checkbox changes only the on-screen preview. Exports are fill-only on purpose (`sanitizeExport` in `vectorize.js` says "Illustrator-safe"), so a downloaded SVG/PDF can still show hairline seams in viewers that anti-alias. Either say "preview only" in the label, or add a fill-safe gap option to the exports.
+- **Gap filler was preview only.** Fixed on `claude/gap-filler-export`: it is off by default, and when it is on the SVG, PDF, EPS and PNG downloads get the same 1 px same-colour outline as the preview. DXF is outlines only and is unchanged.
 - **Arabic dual.** "2 ألوان" would read better as "لونان". This is cosmetic.
 - **Not covered here:** the Electron app, drag and drop with a real mouse, paste from the real clipboard, and pictures larger than 4096 px.

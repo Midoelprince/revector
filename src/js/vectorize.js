@@ -2218,7 +2218,11 @@
     });
     return out;
   }
-  // Exports are fill-only: no strokes, no gap strokes (Illustrator-safe).
+  // Exports are fill-only by default: no strokes (Illustrator-safe, cutter-safe).
+  // The one exception is o.gapFill on "cutouts" results: each shape then also gets a
+  // same-colour outline one source pixel wide, which hides hairline seams between shapes.
+  const GAP_WIDTH = 1;
+  const useGap = (result, o) => !!o.gapFill && result.layering === "cutouts";
   function sanitizeExport(text, fmt) {
     if (fmt === "svg") return text.replace(/\s(stroke(-[a-z]+)?)="[^"]*"/g, "").replace(/<(g|path)(?=[\s>\/])/g, '<$1 stroke="none"');
     if (fmt === "eps" || fmt === "pdf") return text.split("\n").filter((l) => !/(setlinewidth|setlinejoin|setlinecap|\bstroke\b|\bRG\b|\bw$|^S$|^1 J 1 j$)/.test(l)).join("\n");
@@ -2228,18 +2232,19 @@
   function toSVG(result, o) {
     o = o || {};
     const W = o.width || result.width, H = o.height || result.height;
+    const gap = useGap(result, o);
     let body = "", current = null;
     for (const it of visibleShapes(result, o)) {
       if (current !== it.li) {
         if (current !== null) body += "</g>\n";
-        body += `<g fill="${it.color}" stroke="none">`;
+        body += gap ? `<g fill="${it.color}" stroke="${it.color}" stroke-width="${GAP_WIDTH}" stroke-linejoin="round">` : `<g fill="${it.color}" stroke="none">`;
         current = it.li;
       }
       body += `<path fill-rule="evenodd" d="${shapeToPath(it.shape, 1)}"/>`;
     }
     if (current !== null) body += "</g>\n";
     const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="${W}px" height="${H}px" viewBox="0 0 ${result.width} ${result.height}" preserveAspectRatio="none">\n${body}</svg>\n`;
-    return sanitizeExport(svg, "svg");
+    return gap ? svg : sanitizeExport(svg, "svg");
   }
 
   function rgb01(hx) { return [1, 3, 5].map((i) => parseInt(hx.substr(i, 2), 16) / 255); }
@@ -2261,12 +2266,14 @@
   function toPDF(result, o) {
     o = o || {};
     const W = o.width || result.width, H = o.height || result.height, s = W / result.width, sy = H / result.height;
-    let content = "";
+    const gap = useGap(result, o);
+    let content = gap ? `${f(GAP_WIDTH * (s + sy) / 2)} w 1 j\n` : "";
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
       content += `${f(r)} ${f(g)} ${f(b)} rg\n`;
+      if (gap) content += `${f(r)} ${f(g)} ${f(b)} RG\n`;
       content += psPath(it.shape, s, H, { m: "m", l: "l", c: "c", h: "h" }, sy, W);
-      content += "f*\n";
+      content += gap ? "B*\n" : "f*\n";
     }
     const objs = [
       "<< /Type /Catalog /Pages 2 0 R >>",
@@ -2286,13 +2293,16 @@
     o = o || {};
     const W = o.width || result.width, H = o.height || result.height, s = W / result.width, sy = H / result.height;
     let ps = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${Math.round(W)} ${Math.round(H)}\n%%HiResBoundingBox: 0 0 ${W.toFixed(4)} ${H.toFixed(4)}\n%%Creator: Revector\n%%Pages: 1\n%%LanguageLevel: 2\n%%EndComments\n%%EndProlog\n%%Page: 1 1\n`;
+    const gap = useGap(result, o);
+    if (gap) ps += `${f(GAP_WIDTH * (s + sy) / 2)} setlinewidth 1 setlinejoin\n`;
     for (const it of visibleShapes(result, o)) {
       const [r, g, b] = rgb01(it.color);
       ps += `${f(r)} ${f(g)} ${f(b)} setrgbcolor newpath\n`;
       ps += psPath(it.shape, s, H, { m: "moveto", l: "lineto", c: "curveto", h: "closepath" }, sy, W);
-      ps += "eofill\n";
+      ps += gap ? "gsave eofill grestore stroke\n" : "eofill\n";
     }
-    return sanitizeExport(ps + "showpage\n%%Trailer\n%%EOF\n", "eps");
+    ps += "showpage\n%%Trailer\n%%EOF\n";
+    return gap ? ps : sanitizeExport(ps, "eps");
   }
   function flatten(c, s, H) {
     const pts = [[c.start[0] * s, H - c.start[1] * s]];
