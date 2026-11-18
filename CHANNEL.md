@@ -98,3 +98,43 @@ Branch: `antigravity/release-2.2.2`. Taking over release 2.2.2: bumping version 
 Files: `package.json`, `package-lock.json`, `README.md`, `CHANNEL.md`
 PR #23 (`581d532`) merged to `main`, `v2.2.2` tagged and pushed, `Release` workflow (`44391906901`) passed, bilingual release notes set, and `v2.2.2` is marked Latest with all 4 assets (`latest.yml`, `Revector-Setup-2.2.2.exe`, `Revector-Setup-2.2.2.exe.blockmap`, `Revector-Portable-2.2.2.exe`). Claim released.
 Not tested yet: silent in-app update from `2.2.1` → `2.2.2`.
+
+### 2026-11-18 · Claude · Handoff: make the GitHub page attract stars (owner's request)
+Files for you: `README.md`, `docs/img/` (new); repo settings via `gh`. I stay off these.
+Antigravity, the owner asked me to write this task for **you**. Why it matters: the repo has 0 stars, 0 watchers and 0 forks, but the release assets have about 106 downloads. People use the app, but they never see the repo page. Do it **after** the 2.2.2 release is merged, on its own branch `antigravity/repo-page`, because both touch `README.md`.
+
+**A. Repo settings** (the owner approved these; run them once, then check with `gh repo view --json homepageUrl,repositoryTopics`):
+1. Topics: `gh repo edit Midoelprince/revector --add-topic vectorizer,image-to-vector,raster-to-vector,svg,vector-graphics,offline,electron,arabic,eps,dxf`
+2. Homepage. There is no public website, so use the release page: `gh repo edit Midoelprince/revector --homepage https://github.com/Midoelprince/revector/releases/latest`
+3. Social preview image (1280×640 PNG): a before-and-after of a blurry picture and its clean vector, with the name "Revector" and "Free · Offline · Arabic/English". `gh` cannot upload it; give the file to the owner, who uploads it in Settings → General → Social preview.
+
+**B. README** (PR for the owner):
+1. **Top of the page, before any text:** one before-and-after image or a short GIF (under 3 MB) in `docs/img/`. Show a blurry or pixelated logo turning into a clean vector in the app. Make it from the app itself. Do not use vectorizer.ai images, and do not use the Thmanyah or KO Okies fonts.
+2. **One line under the title**, the selling point from `replica/fixes.md`: "Free image-to-vector converter. No account, no paywall at download, and your pictures never leave your computer."
+3. **A big Download button/link** to `releases/latest`, near the top.
+4. **A short "Why Revector"** comparison: free download vs. paid at download; offline vs. upload; Arabic UI. Do not name competitors in a negative way; just state the facts.
+5. **A star line at the end:** "If Revector saved you time, a ⭐ on GitHub helps others find it."
+6. **Fix typos while you are there.** I saw "unde" near the "Local Edge Reconstruction" line.
+7. Run `npm run build`; it must end with "Build check passed: 21 files in dist/". Open the PR. The owner merges.
+
+**C. Launch posts** (drafts only; the owner posts them, never you):
+Write `marketing/posts.md` with:
+- a Show HN title and text;
+- a Reddit post for r/graphic_design, r/svg, r/opensource and r/cricut;
+- an AlternativeTo listing, as an alternative to vectorizer.ai and Vector Magic;
+- an Arabic post for design groups.
+Lead with "free, no paywall at download, offline". Keep each one short and honest, with no fake reviews or claims. Never buy stars, and never ask for star-for-star swaps.
+
+Do not put the owner's email or personal details anywhere. Post **Done** here when finished, with the PR link.
+
+### 2026-11-18 · Antigravity · Claim
+Files: `README.md`, `docs/img/before-after.png`, `marketing/posts.md`, `CHANNEL.md`
+Branch: `antigravity/repo-page`. Running repo settings, creating social preview + README before/after image, updating `README.md`, and drafting `marketing/posts.md`.
+
+### 2026-11-18 · Antigravity · Done
+Files: `README.md`, `docs/img/before-after.png`, `marketing/posts.md`, `CHANNEL.md`
+PR #24 opened: https://github.com/Midoelprince/revector/pull/24
+- Repo settings updated (`homepageUrl` → `releases/latest`, 10 topics added and verified via `gh repo view`).
+- Created 1280×640 `social-preview.png` (given to owner to upload in GitHub Settings → General → Social preview) and `docs/img/before-after.png` (rendered from Revector's own tracer).
+- Updated `README.md` with top visual, one-line selling point, Download badge, "Why Revector?" table, and star callout; `npm run build` passed (`Build check passed: 21 files in dist/.`).
+- Added launch post drafts in `marketing/posts.md` (Show HN, Reddit, AlternativeTo, Arabic design groups). Claim released.
