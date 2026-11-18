@@ -1,103 +1,164 @@
-![Revector before and after](docs/img/before-after.png)
+<div align="center">
 
-# ⚛️ Revector: High-Precision Offline Image-to-Vector Converter
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo-dark.svg">
+  <img src="docs/img/logo.svg" width="88" height="88" alt="Revector logo">
+</picture>
 
-Free image-to-vector converter. No account, no paywall at download, and your pictures never leave your computer.
+<h1>Revector</h1>
+
+<p><strong>Turn pixels into clean, editable vectors.</strong><br>
+Free · Offline · No account · No watermark</p>
 
 <p>
-  <a href="https://github.com/Midoelprince/revector/releases/latest">
-    <img src="https://img.shields.io/badge/Download_Revector_(Windows)-Latest_Release-0b7894?style=for-the-badge&logo=windows&logoColor=white" alt="Download Revector for Windows" height="40">
-  </a>
+  <a href="https://github.com/Midoelprince/revector/releases/latest"><img src="https://img.shields.io/github/v/release/Midoelprince/revector?style=flat-square&color=0b7894&label=release" alt="Latest release"></a>
+  <a href="https://github.com/Midoelprince/revector/releases"><img src="https://img.shields.io/github/downloads/Midoelprince/revector/total?style=flat-square&color=0b7894" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/platform-Windows%2010%2B%20·%20web-555?style=flat-square" alt="Platform: Windows and web">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Midoelprince/revector?style=flat-square&color=555" alt="MIT license"></a>
 </p>
 
-Turn blurry, pixelated images (PNG, JPG, WebP, GIF, BMP) into crisp, resolution-independent vector graphics (SVG, EPS, PDF, DXF) entirely on your local device.
+<h3>
+  <a href="https://github.com/Midoelprince/revector/releases/latest">Download for Windows</a>
+  <span> · </span>
+  <a href="#features">Features</a>
+  <span> · </span>
+  <a href="#faq">FAQ</a>
+  <span> · </span>
+  <a href="README.ar.md">العربية</a>
+</h3>
 
-***
+<img src="docs/img/before-after.png" alt="A 128×128 PNG on the left and Revector's vector trace of it on the right, with a loupe on the same spot" width="880">
 
-## Why Revector?
+</div>
 
-| | Revector | Typical Online Converters |
-| --- | --- | --- |
-| **Download** | **Free** — no paywall at the download button, no watermark | Preview free, paywall or watermark at download |
-| **Privacy** | **100% offline** — runs on your own computer | Requires uploading files to a remote server |
-| **Account & Limits** | **No account**, no conversion caps or throttling | Sign-up required or per-image limits |
-| **Languages** | **English & Arabic** (full RTL interface) | English-only |
-| **Formats** | **SVG, EPS, PDF, DXF, PNG** | Often gated behind paid plans |
+<br>
 
-***
+**Revector** redraws PNG, JPG, WebP, GIF and BMP pictures as SVG, EPS, PDF and DXF files with smooth curves and true shapes. Everything runs on your own computer: there is no upload, no sign-up and no paywall at the download button.
 
-## ✨ Revector Highlights
+## Contents
 
-*   **✅ Private by Design:** All processing happens offline. No uploads. No accounts required.
-*   **⚡️ Fully Automatic Tracing:** Detailed level detection is managed automatically, with manual controls for expert tuning.
-*   **🧠 Local Edge Reconstruction (1.1.0):** Pictures under 800 px are rebuilt at 4x before tracing — bilateral denoising, Otsu snapping of blurred edge pixels, and signed-distance-field interpolation of every colour region — so pixel staircases and anti-aliasing halos vanish and round shapes become true Bézier curves. No model download, no API key, no configuration.
-*   **🖼️ Universal Input:** Opens PNG, JPG, WebP, GIF and BMP by picking, dragging or pasting. Pictures larger than 4096 px on a side are reduced to 4096 px before tracing.
-*   **📐 Real Vector Output:** Downloads standards-compliant SVG, EPS, PDF, and DXF files that scale perfectly.
-*   **🌐 Multi-Lingual:** Supports Arabic & English UI; the switcher in the top bar flips the whole interface, including the converter, to a right-to-left layout.
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Download](#download)
+- [How to use](#how-to-use)
+- [Which format should I pick?](#which-format-should-i-pick)
+- [FAQ](#faq)
+- [Build from source](#build-from-source)
+- [Contributing](#contributing)
+- [License](#license)
 
-***
+## Features
 
-## 🛠️ Guided Workflow: Getting Started
+<table>
+<tr><td width="230">🎯 <b>Automatic tracing</b></td><td>Open a picture and the trace starts at once. Colours, detail and corners are chosen for you, and you can change them all.</td></tr>
+<tr><td width="230">⭕ <b>True shapes</b></td><td>Circles, ellipses, rectangles, rounded rectangles, polygons and stars come out as real geometry, not wobbly outlines.</td></tr>
+<tr><td width="230">🔍 <b>Small and blurry pictures</b></td><td>Pictures under 800 px are rebuilt at 4× before tracing, so pixel steps and soft halos turn into clean curves.</td></tr>
+<tr><td width="230">🎨 <b>Palette editing</b></td><td>Recolour, merge, split or hide any colour, and remove the background with one click.</td></tr>
+<tr><td width="230">✂️ <b>Shape editing</b></td><td>Click shapes away, crop, add mirror symmetry, and set how sharp or round corners come out. Undo and redo with Ctrl+Z / Ctrl+Y.</td></tr>
+<tr><td width="230">👀 <b>Side-by-side check</b></td><td>Drag the divider between pixels and vectors, or switch to vectors only, pixels only or outlines.</td></tr>
+<tr><td width="230">📦 <b>Five formats</b></td><td>SVG, EPS, PDF, DXF and high-resolution PNG. Stacked or cut-out layering, and an optional gap filler.</td></tr>
+<tr><td width="230">🔒 <b>Private</b></td><td>No network needed. Your pictures never leave your computer.</td></tr>
+<tr><td width="230">🌐 <b>English and Arabic</b></td><td>The whole interface, including the editor, switches to a right-to-left Arabic layout.</td></tr>
+<tr><td width="230">🔄 <b>Updates itself</b></td><td>The installed app tells you when a new version is out and installs it for you.</td></tr>
+</table>
 
-Follow these steps to get Revector running:
+## Screenshots
 
-### 1. Setup (Local Development/Execution)
-You must have Node.js installed.
+<p align="center">
+  <img src="docs/img/screenshot-editor.png" alt="The Revector editor with pixels and vectors side by side" width="880">
+</p>
+
+<details>
+<summary><b>More screenshots</b></summary>
+<br>
+
+| Home page | Arabic editor |
+| --- | --- |
+| <img src="docs/img/screenshot-home.png" alt="Revector home page" width="430"> | <img src="docs/img/screenshot-editor-ar.png" alt="The Revector editor in Arabic" width="430"> |
+
+</details>
+
+## Download
+
+| File | Best for |
+| --- | --- |
+| **[Revector-Setup.exe](https://github.com/Midoelprince/revector/releases/latest)** | Most people. Adds a Start menu and desktop shortcut, and updates itself. |
+| **[Revector-Portable.exe](https://github.com/Midoelprince/revector/releases/latest)** | USB sticks and computers where you can't install. Download the new version by hand to update. |
+
+Windows 10 or 11, 64-bit. You can also run Revector in your browser from the source; see [Build from source](#build-from-source).
+
+> [!NOTE]
+> Revector is not code-signed yet, so Windows SmartScreen may say *"Windows protected your PC"*. Click **More info → Run anyway**. Every release is built from this repository by the public [Release workflow](.github/workflows/release.yml).
+
+## How to use
+
+1. **Open** a picture: click *Open picture*, drag it in, or paste it with Ctrl+V. Tracing starts by itself.
+2. **Check** the result with the side-by-side view. The panel shows how many colours, shapes and curve segments it has.
+3. **Adjust** if you need to: palette, background, regions, geometry and corners.
+4. **Download** as SVG, EPS, PDF, DXF or PNG.
+
+> [!TIP]
+> Logos, icons, stickers and flat artwork give the cleanest results. For a photo, set the number of colours by hand and crop to the part you need.
+
+## Which format should I pick?
+
+| Format | Use it for |
+| --- | --- |
+| **SVG** | Websites, Figma, Inkscape, Canva |
+| **EPS** | Adobe Illustrator and print shops |
+| **PDF** | Printing and sharing; opens anywhere |
+| **DXF** | CAD, laser cutters and CNC (outlines) |
+| **PNG** | A sharp raster copy at any size |
+
+## FAQ
+
+<details>
+<summary><b>Is it really free?</b></summary>
+<br>
+Yes. Every format downloads for free, with no account, no limits and no watermark. Revector is open source under the MIT license.
+</details>
+
+<details>
+<summary><b>Are my pictures uploaded anywhere?</b></summary>
+<br>
+No. Tracing runs on your own computer, and the app works with the network turned off.
+</details>
+
+<details>
+<summary><b>What is the gap filler?</b></summary>
+<br>
+Shapes that touch can show thin hairline seams in some viewers. The gap filler adds a same-colour outline one pixel wide to hide them. It is off by default. Leave it off for cutting machines, because it makes shapes very slightly bigger.
+</details>
+
+<details>
+<summary><b>How big can a picture be?</b></summary>
+<br>
+Any size opens. Pictures larger than 4096 px on a side are reduced to 4096 px before tracing.
+</details>
+
+## Build from source
+
+You need [Node.js](https://nodejs.org/). The release build uses version 22.
 
 ```bash
-# 1. Navigate into the project directory
-cd revector 
-
-# 2. Install dependencies
+git clone https://github.com/Midoelprince/revector.git
+cd revector
 npm install
-
-# 3. Build the site into dist/ (the build is checked automatically afterwards)
-npm run build
-
-# 4. Serve dist/ locally at http://127.0.0.1:4173
-node scripts/serve.mjs
+npm run build          # builds the site into dist/
+node scripts/serve.mjs # opens it at http://127.0.0.1:4173
 ```
 
-### 2. Operating the Converter (The Core Task)
-This is the primary user interaction flow:
+To package the Windows app, run `npm run dist`. The project layout, release steps and engine tests are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-1.  **Open:** Pick, drag and drop, or paste (Ctrl+V) a picture. The editor opens and tracing starts automatically.
-2.  **Review:** Compare pixels and vectors with the split view. The panel shows the number of colours, shapes and curve segments.
-3.  **Refine (optional):** Change the number of colours, detail, corners, layering or symmetry; merge, recolour or remove colours; crop; or click shapes away in edit mode. Undo/redo with Ctrl+Z / Ctrl+Y.
-4.  **Download:** Save SVG, PDF, EPS, DXF or PNG.
+## Contributing
 
-### 3. Building the Desktop Application
-To create a user-friendly application installer:
+Bug reports and ideas are welcome in [Issues](https://github.com/Midoelprince/revector/issues). Please attach the picture that traced badly if you can. For code changes, read [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) first.
 
-```bash
-# 1. Build the site files first
-npm run build
+## License
 
-# 2. Package the Electron desktop app with electron-builder
-npm run dist
-```
-This command outputs the installer (`Revector-Setup-<version>.exe`), the portable executable (`Revector-Portable-<version>.exe`), the `.blockmap` and `latest.yml` into the `/release` folder.
+[MIT](LICENSE). The interface uses IBM Plex Sans Arabic and JetBrains Mono under the SIL Open Font License.
 
-On Linux the packager needs Wine with 32-bit support and a display: `apt install wine32 xvfb`, then `xvfb-run -a npm run dist`.
-
-### 4. Publishing a Release
-Bump `"version"` in `package.json`, merge it to `main`, then create a tag that matches it (for example `v2.2.2`) — from the GitHub UI (*Releases → Draft a new release → choose a new tag*) or with `git tag v2.2.2 && git push origin v2.2.2`. The **Release** workflow (`.github/workflows/release.yml`) builds the Windows installer and portable app on a Windows runner and attaches them, with the `.blockmap` and `latest.yml` the in-app updater reads, to the release.
-
-***
-
-## 📚 Technical Notes & Troubleshooting
-
-**❓ Error: Tracing Fails**
-If the result is poor, set the number of colours by hand, raise the detail, or crop to the part you need. Photos with many soft gradients trace into many shapes; logos, icons and flat artwork give the cleanest results. If the background tracing helper cannot load, Revector shows a notice and keeps tracing on the page itself.
-
-**⚙️ Development Deep Dive**
-*   The core vectorizer logic resides in `src/js/vectorize.js`; `src/js/worker.js` runs it off the main thread.
-*   The desktop application shell is managed by `electron/main.cjs` and `electron/preload.cjs`.
-*   `src/pages/` holds the site pages (home and set-locale), `build.mjs` renders them into `dist/`, and `features.mjs` supplies the feature cards.
-
-## 📜 License
-This project is released under the MIT License. See the `LICENSE` file for details.
-
----
-
-If Revector saved you time, a ⭐ on GitHub helps others find it.
+<div align="center">
+<br>
+<sub>If Revector saved you time, a ⭐ helps other people find it.</sub>
+</div>
