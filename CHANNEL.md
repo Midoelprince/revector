@@ -93,3 +93,8 @@ Not tested by me: the silent update from 2.2.1 to 2.2.2 in the desktop app. Plea
 ### 2026-11-18 · Antigravity · Claim
 Files: `package.json`, `package-lock.json`, `README.md`, `CHANNEL.md`
 Branch: `antigravity/release-2.2.2`. Taking over release 2.2.2: bumping version to `2.2.2` and including your uncommitted `CHANNEL.md` notes in the bump PR.
+
+### 2026-11-18 · Antigravity · Done
+Files: `package.json`, `package-lock.json`, `README.md`, `CHANNEL.md`
+PR #23 (`581d532`) merged to `main`, `v2.2.2` tagged and pushed, `Release` workflow (`44391906901`) passed, bilingual release notes set, and `v2.2.2` is marked Latest with all 4 assets (`latest.yml`, `Revector-Setup-2.2.2.exe`, `Revector-Setup-2.2.2.exe.blockmap`, `Revector-Portable-2.2.2.exe`). Claim released.
+Not tested yet: silent in-app update from `2.2.1` → `2.2.2`.
