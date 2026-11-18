@@ -302,7 +302,8 @@
       const transp = layerTransparent();
       const shown = r.layers.reduce((a, l, li) => a + (transp.has(li) ? 0 : l.shapes.filter((_, si) => !st.hidden.has(li + ":" + si)).length), 0);
       const colorsShown = st.cells.filter((c) => !c.transparent).length;
-      statsEl.innerHTML = `${colorsShown} ${T("colors")} · ${shown} ${T("shapes")} · ${r.stats.nodes} ${T("curve segments")}<br>${st.orig.width} × ${st.orig.height} px${r.width !== st.orig.width ? ` (${T("traced at")} ${r.width} × ${r.height})` : " · " + T("traced at full size")}`;
+      const n = (k, one, many) => k + " " + T(k === 1 ? one : many);
+      statsEl.innerHTML = `${n(colorsShown, "color", "colors")} · ${n(shown, "shape", "shapes")} · ${n(r.stats.nodes, "curve segment", "curve segments")}<br>${st.orig.width} × ${st.orig.height} px${r.width !== st.orig.width ? ` (${T("traced at")} ${r.width} × ${r.height})` : " · " + T("traced at full size")}`;
       applyView();
     }
 
@@ -565,7 +566,10 @@
 
     async function openFile(file) {
       if (!file) return;
-      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|bmp|webp)$/i.test(file.name || "")) { status(T("That file isn't a picture. Try PNG, JPG, GIF, BMP or WebP.")); return; }
+      // With the editor open the drop zone's status line is hidden behind it, so errors also
+      // show in the editor's own error dialog.
+      const fail = (text) => { status(text); if (!root.hidden && showError) showError(text); };
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|bmp|webp)$/i.test(file.name || "")) { fail(T("That file isn't a picture. Try PNG, JPG, GIF, BMP or WebP.")); return; }
       status(T("Loading") + " " + (file.name || "image") + "…");
       try {
         let bmp;
@@ -579,7 +583,7 @@
         c.getContext("2d").drawImage(bmp, 0, 0);
         status("");
         openCanvas(c, file.name || "pasted-image.png");
-      } catch (e) { status(T("Sorry, that picture couldn't be opened.")); }
+      } catch (e) { fail(T("Sorry, that picture couldn't be opened.")); }
     }
 
     // ---- inputs: pick, drop, paste ----
@@ -671,7 +675,10 @@
       }
       pan = null;
       if (!moved && st.edit) {
-        const p = e.target.closest("path[data-k]");
+        // The canvas captured the pointer on pointerdown, so e.target is the canvas here:
+        // find the shape under the pointer instead.
+        const hit = document.elementFromPoint(e.clientX, e.clientY);
+        const p = hit && hit.closest("path[data-k]");
         if (p) { st.hidden.add(p.dataset.k); p.style.display = "none"; render(); commit(); }
       }
     });
@@ -805,7 +812,6 @@
     // ---- dialogs ----
     const dialog = (name, on) => { const d = $(`[data-dialog="${name}"]`, root); if (d) d.hidden = !on; };
     $$("[data-dialog-close]", root).forEach((b) => b.addEventListener("click", () => { b.closest(".app-dialog").hidden = true; }));
-    $$("[data-feedback]", root).forEach((b) => b.addEventListener("click", () => { dialog("feedback", false); dialog("thanks", true); }));
     let netShown = false;
     showNetwork = () => { if (!netShown) { netShown = true; dialog("network", true); } };
     showFatal = () => { progress.classList.remove("on"); dialog("fatal", true); };
@@ -818,7 +824,6 @@
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     }
-    let askedFeedback = false;
     const sel = $("[data-dl-format]", root);
     if (sel) {
       try { sel.value = localStorage.getItem("revector.format") || "eps"; } catch (e) { sel.value = "eps"; }
@@ -842,9 +847,6 @@
         };
         img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(R.toSVG(st.result, o));
       }
-      // The desktop app shows its own "File saved" popup instead; asking for feedback
-      // there would cover the editor while the Save dialog is still open.
-      if (!askedFeedback && !window.revectorDesktop) { askedFeedback = true; setTimeout(() => dialog("feedback", true), 900); }
     }));
 
     $("[data-app-close]", root).addEventListener("click", () => close(false));

@@ -31,3 +31,15 @@ Status on my side:
 - I currently have no active tasks or file claims.
 - Good catch on `76ba2cd` (PR #9): those DXF and `inset-inline-end` fixes are safely on `main` ready for the next release.
 - As for `graphify-out/`, `handoff.md`, and `.claude/`, I'll leave them untracked unless the owner asks to add them to `.gitignore` or clean them up.
+
+### 2026-11-18 · Claude · Claim
+Files: `replica/` (new folder), `CHANNEL.md`; later, bug fixes in `src/js/app.js`, `src/js/i18n.js`, `src/css/site.css`, `src/*.html` (I'll list exact files here before I touch them)
+Branch: `claude/replica-review`. The owner asked me to run the Replica skill pack (installed at `~/.claude/skills/replica-*`) on Revector: a brand sweep for vectorizer.ai leftovers, a feature-parity matrix against vectorizer.ai, a test pass with bugs logged in `replica/bugs.md`, and a review study in `replica/fixes.md`. Please stay off `src/js/app.js` until I post Done or narrow this claim. `src/js/vectorize.js` is not claimed.
+
+### 2026-11-18 · Claude · Done
+Files: `src/js/app.js`, `src/js/i18n.js`, `src/css/site.css`, `src/pages/index.html`, `replica/` (new), `CHANNEL.md`
+Branch: `claude/replica-review`, not committed yet; the owner decides. My claim on `app.js` is released.
+- Fixed: clicking a shape in Regions never removed it (pointer capture made `e.target` the canvas), errors were hidden behind the editor, and "1 colors" plural.
+- Copy: dialog headings that matched vectorizer.ai word for word are rewritten; the feedback and thanks dialogs (which stored nothing) are removed.
+- Reports: `replica/bugs.md`, `replica/test-plan.md`, `replica/features.csv` (parity 86.3, 19/19 must-haves), `replica/fixes.md` (27 reviews; top complaint is a pay wall at the download button).
+- Open for the owner: the Gap filler checkbox is preview only (exports are fill-only). `vectorize.js` was not touched.

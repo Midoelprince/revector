@@ -1,0 +1,48 @@
+feature,area,priority,original,clone,notes
+Upload by file picker,input,must,yes,yes,accept=image/*
+Drag and drop a picture,input,must,yes,yes,
+Paste a picture (Ctrl+V),input,must,yes,yes,
+PNG JPG GIF BMP WebP input,input,must,yes,yes,whatever the browser decodes
+Crop before tracing,input,should,yes,partial,Crop exists in Regions after tracing; not before
+Fully automatic trace,tracing,must,yes,yes,
+Automatic colour count,tracing,must,yes,yes,Auto preset
+Manual colour count,tracing,must,yes,yes,palette presets
+Fit circles ellipses rectangles rounded rectangles,tracing,must,yes,yes,plus polygons 3-8 and stars 3-10
+Mirror symmetry,tracing,should,yes,yes,left/right only
+Rotational symmetry,tracing,could,yes,no,
+Repeated shapes detection,tracing,could,yes,no,
+Sub-pixel precision,tracing,should,yes,yes,refiner
+Clean blurred photos and scans,tracing,should,yes,yes,measureBlur + unblend + line-first
+Remove background,editing,must,yes,yes,checkbox
+Click a shape to remove it,editing,must,yes,yes,Regions
+Recolour a palette colour,editing,must,yes,yes,colour picker
+Merge colours,editing,must,yes,yes,drag or Merge
+Split a merged colour,editing,should,yes,yes,
+Make a colour transparent,editing,should,yes,yes,
+Merge a region into its neighbour,editing,could,yes,no,
+Sharpen or round all corners,editing,should,yes,yes,
+Corner sharpness control,editing,should,yes,yes,slider
+Edit single corners or nodes,editing,could,yes,no,
+Undo and redo,editing,must,yes,yes,
+Compare original and result,viewing,must,yes,yes,split view
+Outline view,viewing,should,yes,yes,Outlines mode
+Zoom and pan,viewing,must,yes,yes,
+SVG download,output,must,yes,yes,
+PDF download,output,must,yes,yes,PDF 1.4
+EPS download,output,must,yes,yes,
+DXF download,output,must,yes,yes,R12 polylines
+PNG download,output,should,yes,yes,
+Stacked or cutout shapes,output,should,yes,yes,
+Gap filler in the downloaded file,output,should,yes,partial,preview only; exports are fill-only by design
+Output size units and DPI,output,should,yes,no,always the source pixel size
+Stroke outlines for cutting machines,output,should,yes,no,DXF is outlines; SVG/PDF have no stroke mode
+Group SVG by colour,output,could,yes,yes,one <g> per colour
+DXF arcs and splines,output,could,yes,no,
+SVG version and Illustrator mode,output,could,yes,no,
+Free download with no subscription,pricing,must,no,yes,Revector is free
+Works offline on the computer,platform,should,no,yes,
+Windows desktop app,platform,should,no,yes,
+Arabic interface,platform,should,yes,yes,
+More interface languages,platform,could,yes,no,they list 16
+Pictures never leave the computer,privacy,should,no,yes,
+Public API and CLI,platform,could,yes,skip,not an offline product
